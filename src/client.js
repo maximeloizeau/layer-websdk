@@ -506,7 +506,7 @@ class Client extends ClientAuth {
       if (typeof identity === 'string') {
         return this.getIdentity(identity, true);
       } else if (identity && typeof identity === 'object') {
-        return this.getIdentity(identity.id, true);
+        return this._createObject(identity);
       }
     });
   }

@@ -111,15 +111,13 @@ class Conversation extends Syncable {
 
     // Setup participants
     else {
-      if (client && this.participants.indexOf(client.user.userId) === -1) {
+      if (this.participants.indexOf(client.user.userId) === -1) {
         this.participants.push(client.user.userId);
       }
-      this.participants = this.participants.map((participant) => {
-        return participant instanceof Identity ? participant : client.getIdentity(participant, true);
-      });
+      this.participants = client._fixIdentities(this.participants);
     }
 
-    if (client) client._addConversation(this);
+    client._addConversation(this);
     this.isInitializing = false;
   }
 
@@ -367,16 +365,7 @@ class Conversation extends Syncable {
     }
 
     this.url = conversation.url;
-    this.participants = conversation.participants.map(userId => client.getIdentity(userId, true));
-    /* TODO: Enable this once server is updated
-    this.participants = conversation.participants.map((basicIdentity) => {
-      let participant = client.getIdentity(basicIdentity.id);
-      if (!participant) {
-        participant = client._createObject(basicIdentity);
-      }
-      return participant;
-    });
-    */
+    this.participants = client._fixIdentities(conversation.participants);
     this.distinct = conversation.distinct;
     this.createdAt = new Date(conversation.created_at);
     this.metadata = conversation.metadata;
@@ -406,14 +395,14 @@ class Conversation extends Syncable {
    * TODO WEB-967: Roll participants back on getting a server error
    *
    * @method addParticipants
-   * @param  {string[]} userIds - Array of participant ids
+   * @param  {string[]/layer.Identity[]} participants - Array of participant ids or Identity objects
    * @returns {layer.Conversation} this
    */
-  addParticipants(userIds) {
+  addParticipants(participants) {
     // Only add those that aren't already in the list.
     const client = this.getClient();
-    const identities = userIds.map(userId => client.getIdentity(userId, true));
-    const adding = identities.filter(participant => this.participants.indexOf(participant) === -1);
+    const identities = client._fixIdentities(participants);
+    const adding = identities.filter(identity => this.participants.indexOf(identity) === -1);
     this._patchParticipants({ add: adding, remove: [] });
     return this;
   }
@@ -431,15 +420,16 @@ class Conversation extends Syncable {
    * TODO  WEB-967: Roll participants back on getting a server error
    *
    * @method removeParticipants
-   * @param  {string[]} userIds - Array of participant ids
+   * @param  {string[]/layer.Identity[]} participants - Array of participant ids or Identity objects
    * @returns {layer.Conversation} this
    */
-  removeParticipants(userIds) {
+  removeParticipants(participants) {
     const currentParticipants = {};
-    this.participants.forEach(participant => currentParticipants[participant.id]);
+    this.participants.forEach((participant) => currentParticipants[participant.id] = true);
     const client = this.getClient();
-    const removeParticipants = userIds.map(userId => client.getIdentity(userId, true));
-    const removing = removeParticipants.filter(participant => currentParticipants[participant.id]);
+    const identities = client._fixIdentities(participants);
+
+    const removing = identities.filter(participant => currentParticipants[participant.id]);
     if (removing.length === 0) return;
     if (removing.length === this.participants.length) {
       throw new Error(LayerError.dictionary.moreParticipantsRequired);
@@ -459,18 +449,18 @@ class Conversation extends Syncable {
    * TODO WEB-967: Roll participants back on getting a server error
    *
    * @method replaceParticipants
-   * @param  {string[]} userIds - Array of participant ids
+   * @param  {string[]/layer.Identity[]} participants - Array of participant ids or Identity objects
    * @returns {layer.Conversation} this
    */
-  replaceParticipants(userIds) {
-    if (!userIds || !userIds.length) {
+  replaceParticipants(participants) {
+    if (!participants || !participants.length) {
       throw new Error(LayerError.dictionary.moreParticipantsRequired);
     }
 
     const client = this.getClient();
-    const participants = userIds.map(userId => client.getIdentity(userId));
+    const identities = client._fixIdentities(participants);
 
-    const change = this._getParticipantChange(participants, this.participants);
+    const change = this._getParticipantChange(identities, this.participants);
     this._patchParticipants(change);
     return this;
   }
