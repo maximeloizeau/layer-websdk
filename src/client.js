@@ -500,6 +500,17 @@ class Client extends ClientAuth {
     return null;
   }
 
+  _fixIdentities(identities) {
+    return identities.map((identity) => {
+      if (identity instanceof Identity) return identity;
+      if (typeof identity === 'string') {
+        return this.getIdentity(identity, true);
+      } else if (identity && typeof identity === 'object') {
+        return this.getIdentity(identity.id, true);
+      }
+    });
+  }
+
   /**
    * Adds an identity to the client.
    *
