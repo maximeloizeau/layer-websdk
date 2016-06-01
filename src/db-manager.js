@@ -207,7 +207,7 @@ class DbManager extends Root {
       const item = {
         id: conversation.id,
         url: conversation.url,
-        participants: conversation.participants,
+        participants: conversation.participants.map(participant => participant.toObject()),
         distinct: conversation.distinct,
         created_at: getDate(conversation.createdAt),
         metadata: conversation.metadata,
