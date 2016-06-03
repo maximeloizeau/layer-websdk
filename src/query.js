@@ -233,7 +233,7 @@ class Query extends Root {
   /**
    * Get the maximum number of items allowed in a page
    *
-   * @method
+   * @method _getMaxPageSize
    * @private
    * @returns {number}
    */
@@ -415,7 +415,7 @@ class Query extends Root {
    *
    * Extract the Conversation's UUID from the predicate... or returned the cached value.
    *
-   * @method _getConversationUUID
+   * @method _getConversationPredicateIds
    * @private
    */
   _getConversationPredicateIds() {
@@ -645,7 +645,7 @@ class Query extends Root {
 
   /**
    * Returns an instance regardless of whether the input is instance or object
-   * @method
+   * @method _getInstance
    * @private
    * @param {layer.Root|Object} item - Conversation or Message object/instance
    * @return {layer.Root}

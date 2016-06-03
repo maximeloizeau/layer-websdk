@@ -172,7 +172,7 @@ class Message extends Syncable {
     this.isInitializing = false;
     if (options && options.fromServer) {
       client._addMessage(this);
-      const status = this.recipientStatus[client.user.userId];
+      const status = this.recipientStatus[client.user.id];
       if (status !== Constants.RECEIPT_STATE.READ && status !== Constants.RECEIPT_STATE.DELIVERED) {
         this._sendReceipt('delivery');
       }
@@ -277,12 +277,12 @@ class Message extends Syncable {
     const value = this[pKey] || {};
     const client = this.getClient();
     if (client) {
-      const userId = client.user.userId;
+      const id = client.user.id;
       const conversation = this.getConversation(false);
       if (conversation) {
         conversation.participants.forEach(participant => {
-          if (!value[participant]) {
-            value[participant] = participant === userId ?
+          if (!value[participant.id]) {
+            value[participant.id] = participant.id === id ?
               Constants.RECEIPT_STATE.READ : Constants.RECEIPT_STATE.PENDING;
           }
         });
@@ -312,9 +312,9 @@ class Message extends Syncable {
 
     if (!conversation || Util.doesObjectMatch(status, oldStatus)) return;
 
-    const userId = client.user.userId;
+    const id = client.user.id;
     const isSender = this.sender.sessionOwner;
-    const userHasRead = status[userId] === Constants.RECEIPT_STATE.READ;
+    const userHasRead = status[id] === Constants.RECEIPT_STATE.READ;
 
     try {
       // -1 so we don't count this user
@@ -326,7 +326,7 @@ class Message extends Syncable {
       }
 
       // Update the readStatus/deliveryStatus properties
-      const { readCount, deliveredCount } = this._getReceiptStatus(status, userId);
+      const { readCount, deliveredCount } = this._getReceiptStatus(status, id);
       this._setReceiptStatus(readCount, deliveredCount, userCount);
     } catch (error) {
       // Do nothing
@@ -339,7 +339,7 @@ class Message extends Syncable {
     //    proves its delivered.
     // 3. The user is the sender; in that case we do care about rendering receipts from other users
     if (!this.isInitializing && oldStatus) {
-      const usersStateUpdatedToRead = userHasRead && oldStatus[userId] !== Constants.RECEIPT_STATE.READ;
+      const usersStateUpdatedToRead = userHasRead && oldStatus[id] !== Constants.RECEIPT_STATE.READ;
       if (usersStateUpdatedToRead || isSender) {
         this._triggerAsync('messages:change', {
           oldValue: oldStatus,
@@ -357,19 +357,19 @@ class Message extends Syncable {
    * @method _getReceiptStatus
    * @private
    * @param  {Object} status - Object describing the delivered/read/sent value for each participant
-   * @param  {string} userId - User ID for this user; not counted when reporting on how many people have read/received.
+   * @param  {string} id - Identity ID for this user; not counted when reporting on how many people have read/received.
    * @return {Object} result
    * @return {number} result.readCount
    * @return {number} result.deliveredCount
    */
-  _getReceiptStatus(status, userId) {
+  _getReceiptStatus(status, id) {
     let readCount = 0,
       deliveredCount = 0;
-    Object.keys(status).filter(participant => participant !== userId).forEach(participant => {
-      if (status[participant] === Constants.RECEIPT_STATE.READ) {
+    Object.keys(status).filter(participant => participant.id !== id).forEach(participant => {
+      if (status[participant.id] === Constants.RECEIPT_STATE.READ) {
         readCount++;
         deliveredCount++;
-      } else if (status[participant] === Constants.RECEIPT_STATE.DELIVERED) {
+      } else if (status[participant.id] === Constants.RECEIPT_STATE.DELIVERED) {
         deliveredCount++;
       }
     });

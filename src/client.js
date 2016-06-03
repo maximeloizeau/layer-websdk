@@ -835,9 +835,8 @@ class Client extends ClientAuth {
    * There are a few ways to invoke it; note that the default behavior is to create a Distinct Conversation
    * unless otherwise stated via the layer.Conversation.distinct property.
    *
-   *         client.createConversation(['a', 'b']);
-   *
    *         client.createConversation({participants: ['a', 'b']});
+   *         client.createConversation({participants: [userIdentityA, userIdentityB]});
    *
    *         client.createConversation({
    *             participants: ['a', 'b'],
@@ -862,7 +861,12 @@ class Client extends ClientAuth {
    * will be triggered asynchronously and the Conversation object will be ready
    * at that time.  Further, the event will provide details on the result:
    *
-   *       var conversation = client.createConversation(['a', 'b']);
+   *       var conversation = client.createConversation({
+   *          participants: ['a', 'b'],
+   *          metadata: {
+   *            title: 'I am a title'
+   *          }
+   *       });
    *       conversation.on('conversations:sent', function(evt) {
    *           switch(evt.result) {
    *               case Conversation.CREATED:
@@ -878,25 +882,16 @@ class Client extends ClientAuth {
    *       });
    *
    * @method createConversation
-   * @param  {Object/string[]} options Either an array of participants,
-   *                                  or an object with parameters to pass to
-   *                                  Conversation's constructor
+   * @param  {Object} options
+   * @param {string[]/layer.UserIdentity[]} participants - Array of UserIDs or UserIdentities
    * @param {Boolean} [options.distinct=true] Is this a distinct Converation?
    * @param {Object} [options.metadata={}] Metadata for your Conversation
    * @return {layer.Conversation}
    */
   createConversation(options) {
-    let opts;
-    if (Array.isArray(options)) {
-      opts = {
-        participants: options,
-      };
-    } else {
-      opts = options;
-    }
-    if (!('distinct' in opts)) opts.distinct = true;
-    opts.client = this;
-    return Conversation.create(opts);
+    if (!('distinct' in options)) options.distinct = true;
+    options.client = this;
+    return Conversation.create(options);
   }
 
   /**
@@ -1024,7 +1019,10 @@ class Client extends ClientAuth {
   }
 
   /**
-   * Calls _checkAndPurgeCache on accumulated objects and resets its state
+   * Calls _checkAndPurgeCache on accumulated objects and resets its state.
+   *
+   * @method _runScheduledCheckAndPurgeCache
+   * @private
    */
   _runScheduledCheckAndPurgeCache() {
     const list = this._scheduleCheckAndPurgeCacheItems;

@@ -119,6 +119,7 @@ class UserIdentity extends Identity {
   constructor(options) {
     super(options);
     if (!this.url) this.url = `${this.getClient().url}/identities/${this.userId}`;
+    if (!this.userId) this.userId = decodeURIComponent(this.id.substring(20));
   }
 
   /**
