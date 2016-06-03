@@ -6,7 +6,7 @@
  *
  * TODO:
  * 0. Redesign this so that knowledge of the data is not hard-coded in
- * @class layer.db-manager
+ * @class layer.DbManager
  * @protected
  */
 

@@ -30,7 +30,9 @@ var messageTemplate = {
     "sent_at": "2014-09-09T04:44:47+00:00",
     "sender": {
         "user_id": "12345",
-        "name": null
+        "display_name": "One through Five",
+        "id": "layer:///identities/12345",
+        "url": "https://huh.com/identities/12345"
     },
     "is_unread": true,
     "recipient_status": {
@@ -69,8 +71,8 @@ responses = {
         "created_at": "2014-09-15T04:44:47+00:00",
         "last_message": sampleMessage1,
         "participants": [
-            "1234",
-            "5678"
+            {user_id: "1234", id: "layer:///identities/1234", url: "https://huh.com/identities/1234", display_name: "one two three four", avatar_url: ""},
+            {user_id: "5678", id: "layer:///identities/5678", url: "https://huh.com/identities/5678", display_name: "five six seven eight", avatar_url: ""},
         ],
         "distinct": true,
         "unread_message_count": 3,
@@ -85,9 +87,9 @@ responses = {
         "created_at": "2014-09-15T04:44:47+00:00",
         "last_message": sampleMessage2,
         "participants": [
-            "777",
-            "999",
-            "111"
+            {user_id: "777", id: "layer:///identities/777", url: "https://huh.com/identities/777", display_name: "Sevens", avatar_url: ""},
+            {user_id: "999", id: "layer:///identities/999", url: "https://huh.com/identities/999", display_name: "Nines", avatar_url: ""},
+            {user_id: "111", id: "layer:///identities/111", url: "https://huh.com/identities/111", display_name: "Ones", avatar_url: ""},
         ],
         "distinct": true,
         "unread_message_count": 3,
@@ -95,14 +97,6 @@ responses = {
             "favorite": "true",
             "background_color": "#3c3c3c"
         }
-    },
-    createConversationDistinct: {
-        "participants": [ "1234", "5678" ],
-        "distinct": true
-    },
-    createConversationNonDistinct: {
-        "participants": [ "1234", "5678" ],
-        "distinct": false
     },
     message1: sampleMessage2,
     message2: sampleMessage3,
@@ -120,11 +114,11 @@ responses = {
       ],
       "sent_at": "2014-09-09T04:44:47+00:00",
       "sender": {
-          "name": "Hey ho"
+          "display_name": "Hey ho"
       },
       "is_unread": true,
       "recipient_status": {
-          "777": "sent"
+          "layer:///identities/777": "sent"
       }
     },
     useridentity: {
@@ -136,7 +130,7 @@ responses = {
         metadata: {}
     },
     serviceidentity: {
-        name: "I am Zod"
+        display_name: "I am Zod"
     }
 };
 

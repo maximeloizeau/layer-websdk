@@ -80,7 +80,7 @@ class Conversation extends Syncable {
    * @method constructor
    * @protected
    * @param  {Object} options
-   * @param {string[]} options.participants - Array of participant ids
+   * @param {string[]/layer.Identity[]} options.participants - Array of participant ids or layer.Identity instances
    * @param {boolean} [options.distinct=true] - Is the conversation distinct
    * @param {Object} [options.metadata] - An object containing Conversation Metadata.
    * @return {layer.Conversation}
@@ -111,10 +111,11 @@ class Conversation extends Syncable {
 
     // Setup participants
     else {
-      if (this.participants.indexOf(client.user.userId) === -1) {
-        this.participants.push(client.user.userId);
-      }
       this.participants = client._fixIdentities(this.participants);
+
+      if (this.participants.indexOf(client.user) === -1) {
+        this.participants.push(client.user);
+      }
     }
 
     client._addConversation(this);
@@ -485,13 +486,12 @@ class Conversation extends Syncable {
     this._applyParticipantChange(change);
     this.isCurrentParticipant = this.participants.indexOf(this.getClient().user) !== -1;
 
-    // TODO: Sort out the new REST API
     const ops = [];
     change.remove.forEach(participant => {
       ops.push({
         operation: 'remove',
         property: 'participants',
-        value: participant.userId,
+        id: participant.id,
       });
     });
 
@@ -499,7 +499,7 @@ class Conversation extends Syncable {
       ops.push({
         operation: 'add',
         property: 'participants',
-        value: participant.userId,
+        id: participant.id,
       });
     });
 
@@ -524,8 +524,8 @@ class Conversation extends Syncable {
    * @method _applyParticipantChange
    * @private
    * @param  {Object} change
-   * @param  {string[]} change.add - Array of userids to add
-   * @param  {string[]} change.remove - Array of userids to remove
+   * @param  {layer.UserIdentity[]} change.add - Array of userids to add
+   * @param  {layer.UserIdentity[]} change.remove - Array of userids to remove
    */
   _applyParticipantChange(change) {
     const participants = [].concat(this.participants);
@@ -660,11 +660,15 @@ class Conversation extends Syncable {
   }
 
   /**
-   * Accepts json-patch operations for modifying participants or metadata
+   * LayerPatch will call this after changing any properties.
+   *
+   * Trigger any cleanup or events needed after these changes.
    *
    * @method _handlePatchEvent
    * @private
-   * @param  {Object[]} data - Array of operations
+   * @param  {Mixed} newValue - New value of the property
+   * @param  {Mixed} oldValue - Prior value of the property
+   * @param  {string[]} paths - Array of paths specifically modified: ['participants'], ['metadata.keyA', 'metadata.keyB']
    */
   _handlePatchEvent(newValue, oldValue, paths) {
     // Certain types of __update handlers are disabled while values are being set by
@@ -678,7 +682,8 @@ class Conversation extends Syncable {
       if (paths[0].indexOf('metadata') === 0) {
         this.__updateMetadata(newValue, oldValue, paths);
       } else if (paths[0] === 'participants') {
-        this.__updateParticipants(newValue, oldValue);
+        const client = this.getClient();
+        this.__updateParticipants(newValue.map(identityObj => client.getIdentity(identityObj.id)), oldValue);
       }
       this._disableEvents = events;
     } catch (err) {
@@ -993,11 +998,7 @@ class Conversation extends Syncable {
    */
   __updateParticipants(newValue, oldValue) {
     if (this._inLayerParser) return;
-    newValue = newValue.map((participant) => {
-      if (participant instanceof layer.Identity) return participant;
-      if (typeof participant === 'object') return this.getClient()._createObject(participant);
-      return this.getClient.getIdentity(participant, true);
-    });
+    newValue = this.getClient()._fixIdentities(newValue);
     const change = this._getParticipantChange(newValue, oldValue);
     if (change.add.length || change.remove.length) {
       change.property = 'participants';
@@ -1106,8 +1107,8 @@ class Conversation extends Syncable {
    * @protected
    * @param  {Object} options
    * @param  {layer.Client} options.client
-   * @param  {string[]} options.participants - Array of participant ids
-   * @param {boolean} [options.distinct=false] - Create a distinct conversation
+   * @param  {string[]/layer.UserIdentity[]} options.participants - Array of userIds or layer.UserIdentity objects to create a conversation with.
+   * @param {boolean} [options.distinct=true] - Create a distinct conversation
    * @param {Object} [options.metadata={}] - Initial metadata for Conversation
    * @return {layer.Conversation}
    */
@@ -1115,18 +1116,15 @@ class Conversation extends Syncable {
     if (!options.client) throw new Error(LayerError.dictionary.clientMissing);
     const newOptions = {
       distinct: options.distinct,
-      participants: options.participants.map((participant) => {
-        return (participant instanceof Identity) ? participant : options.client.getIdentity(participant, true);
-      }),
+      participants: options.client._fixIdentities(options.participants),
       metadata: options.metadata,
       client: options.client,
     };
-    if (options.distinct) {
-      const conv = this._createDistinct(options);
+    if (newOptions.distinct) {
+      const conv = this._createDistinct(newOptions);
       if (conv) return conv;
     }
-
-    return new Conversation(options);
+    return new Conversation(newOptions);
   }
 
   /**
@@ -1141,7 +1139,7 @@ class Conversation extends Syncable {
    * @method _createDistinct
    * @static
    * @private
-   * @param  {Object} options - See layer.Conversation.create options
+   * @param  {Object} options - See layer.Conversation.create options; participants must be layer.Identity[]
    * @return {layer.Conversation}
    */
   static _createDistinct(options) {
@@ -1156,7 +1154,7 @@ class Conversation extends Syncable {
 
     const conv = options.client.findCachedConversation(aConv => {
       if (aConv.distinct && aConv.participants.length === options.participants.length) {
-        for (let index = 0; index > aConv.participants.length; index++) {
+        for (let index = 0; index < aConv.participants.length; index++) {
           if (!participantsHash[aConv.participants[index].id]) return false;
         }
         return true;

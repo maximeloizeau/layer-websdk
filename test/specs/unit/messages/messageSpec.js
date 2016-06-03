@@ -3,6 +3,10 @@ describe("The Message class", function() {
     var appId = "Fred's App";
 
     var conversation,
+        userIdentity1,
+        userIdentity2,
+        userIdentity3,
+        userIdentity4,
         client,
         requests;
 
@@ -16,10 +20,10 @@ describe("The Message class", function() {
             url: "https://doh.com"
         });
 
-        client.user = new layer.UserIdentity({
+        client.user = new layer.Identity({
           clientId: client.appId,
           userId: "999",
-          id: "layer:///identities/" + client.userId,
+          id: "layer:///identities/999",
           firstName: "first",
           lastName: "last",
           phoneNumber: "phone",
@@ -31,6 +35,30 @@ describe("The Message class", function() {
           syncState: layer.Constants.SYNC_STATE.SYNCED,
           isFullIdentity: true,
           sessionOwner: true
+        });
+        userIdentity1 = new layer.Identity({
+            clientId: client.appId,
+            id: "layer:///identities/1",
+            displayName: "1",
+            userId: "1"
+        });
+        userIdentity2 = new layer.Identity({
+            clientId: client.appId,
+            id: "layer:///identities/2",
+            displayName: "2",
+            userId: "2"
+        });
+        userIdentity3 = new layer.Identity({
+            clientId: client.appId,
+            id: "layer:///identities/3",
+            displayName: "3",
+            userId: "3"
+        });
+        userIdentity4 = new layer.Identity({
+            clientId: client.appId,
+            id: "layer:///identities/4",
+            displayName: "4",
+            userId: "4"
         });
 
         client._clientAuthenticated();
@@ -210,7 +238,7 @@ describe("The Message class", function() {
                 is_unread: true,
                 parts: [],
                 recipient_status: {
-                    a: "read"
+                    "layer:///identities/a": "read"
                 }
             };
 
@@ -474,12 +502,12 @@ describe("The Message class", function() {
 
         it("Should return 4 readCount, 4 deliveredCount ignoring logged in user", function() {
             expect(message._getReceiptStatus({
-                a: "read",
-                b: "read",
-                c: "read",
-                d: "read",
-                "999": "read"
-            }, "999")).toEqual({
+                "layer:///identities/a": "read",
+                "layer:///identities/b": "read",
+                "layer:///identities/c": "read",
+                "layer:///identities/d": "read",
+                "layer:///identities/999": "read"
+            }, "layer:///identities/999")).toEqual({
                 readCount: 4,
                 deliveredCount: 4
             });
@@ -487,12 +515,12 @@ describe("The Message class", function() {
 
         it("Should return 2 readCount, 4 deliveredCount ignoring logged in user", function() {
             expect(message._getReceiptStatus({
-                a: "delivered",
-                b: "delivered",
-                c: "read",
-                d: "read",
-                "999": "read"
-            }, "999")).toEqual({
+                "layer:///identities/a": "delivered",
+                "layer:///identities/b": "delivered",
+                "layer:///identities/c": "read",
+                "layer:///identities/d": "read",
+                "layer:///identities/999": "read"
+            }, "layer:///identities/999")).toEqual({
                 readCount: 2,
                 deliveredCount: 4
             });
@@ -500,11 +528,11 @@ describe("The Message class", function() {
 
         it("Should return 3 readCount, 5 deliveredCount if no logged user", function() {
             expect(message._getReceiptStatus({
-                a: "delivered",
-                b: "delivered",
-                c: "read",
-                d: "read",
-                "999": "read"
+                "layer:///identities/a": "delivered",
+                "layer:///identities/b": "delivered",
+                "layer:///identities/c": "read",
+                "layer:///identities/d": "read",
+                "layer:///identities/999": "read"
             }, "")).toEqual({
                 readCount: 3,
                 deliveredCount: 5
@@ -513,12 +541,12 @@ describe("The Message class", function() {
 
         it("Should return 0 readCount, 1 deliveredCount ignoring logged in user", function() {
             expect(message._getReceiptStatus({
-                a: "sent",
-                b: "delivered",
-                c: "sent",
-                d: "sent",
-                "999": "sent"
-            }, "999")).toEqual({
+                "layer:///identities/a": "sent",
+                "layer:///identities/b": "delivered",
+                "layer:///identities/c": "sent",
+                "layer:///identities/d": "sent",
+                "layer:///identities/999": "sent"
+            }, "layer:///identities/999")).toEqual({
                 readCount: 0,
                 deliveredCount: 1
             });
@@ -528,7 +556,7 @@ describe("The Message class", function() {
     describe("The __getRecipientStatus() method", function() {
       var m;
       beforeEach(function() {
-          conversation.participants = ["a","b","d","999"];
+          conversation.participants = [userIdentity1, userIdentity2, userIdentity3, client.user];
           var messageData = JSON.parse(JSON.stringify(responses.message1));
 
           m = new layer.Message({
@@ -544,12 +572,12 @@ describe("The Message class", function() {
 
       it("Should return the participant's value if its not NEW", function() {
         m.recipientStatus = {
-            a: "sent",
-            b: "delivered",
-            d: "read",
-            999: "read"
+            "layer:///identities/a": "sent",
+            "layer:///identities/b": "delivered",
+            "layer:///identities/d": "read",
+            "layer:///identities/999": "read"
           };
-        expect(m.recipientStatus["b"]).toEqual(layer.Constants.RECEIPT_STATE.DELIVERED);
+        expect(m.recipientStatus["layer:///identities/b"]).toEqual(layer.Constants.RECEIPT_STATE.DELIVERED);
         expect(layer.Constants.RECEIPT_STATE.DELIVERED.length > 0).toBe(true);
       });
 
@@ -562,10 +590,10 @@ describe("The Message class", function() {
       it("Should return PENDING for users who have not yet been sent the Message", function() {
         m.recipientStatus = {};
         expect(m.recipientStatus).toEqual({
-          a: layer.Constants.RECEIPT_STATE.PENDING,
-          b: layer.Constants.RECEIPT_STATE.PENDING,
-          d: layer.Constants.RECEIPT_STATE.PENDING,
-          999: layer.Constants.RECEIPT_STATE.READ
+          "layer:///identities/1": layer.Constants.RECEIPT_STATE.PENDING,
+          "layer:///identities/2": layer.Constants.RECEIPT_STATE.PENDING,
+          "layer:///identities/3": layer.Constants.RECEIPT_STATE.PENDING,
+          "layer:///identities/999": layer.Constants.RECEIPT_STATE.READ
         });
         expect(layer.Constants.RECEIPT_STATE.PENDING.length > 0).toBe(true);
       });
@@ -574,13 +602,13 @@ describe("The Message class", function() {
     describe("The __updateRecipientStatus() method", function() {
         var m;
         beforeEach(function() {
-            conversation.participants = ["a","b","d","999"];
+            conversation.participants = [userIdentity1, userIdentity2, userIdentity3, client.user];
             var messageData = JSON.parse(JSON.stringify(responses.message1));
             messageData.recipient_status = {
-              a: "sent",
-              b: "delivered",
-              d: "read",
-              999: "read"
+              "layer:///identities/a": "sent",
+              "layer:///identities/b": "delivered",
+              "layer:///identities/d": "read",
+              "layer:///identities/999": "read"
             };
             m = new layer.Message({
               client: client,
@@ -596,16 +624,16 @@ describe("The Message class", function() {
         it("Should allow the recipientStatus property to update", function() {
             // Run
             m.recipientStatus = {
-                z: "sent"
+                "layer:///identities/z": "sent"
             };
 
             // Posttest
             expect(m.recipientStatus).toEqual({
-              z: "sent",
-              a: "pending",
-              b: "pending",
-              d: "pending",
-              999: "read"
+              "layer:///identities/z": "sent",
+              "layer:///identities/1": "pending",
+              "layer:///identities/2": "pending",
+              "layer:///identities/3": "pending",
+              "layer:///identities/999": "read"
             });
         });
 
@@ -618,7 +646,7 @@ describe("The Message class", function() {
             expect(m.isUnread).toEqual(true);
 
             // Run
-            m.recipientStatus = {999: "read"};
+            m.recipientStatus = {"layer:///identities/999": "read"};
 
             // Posttest
             expect(m.isRead).toEqual(true);
@@ -630,7 +658,12 @@ describe("The Message class", function() {
             spyOn(m, "_setReceiptStatus");
 
             // Run
-            m.recipientStatus = {999: "read", a: "sent", b: "delivered", c: "read"};
+            m.recipientStatus = {
+                "layer:///identities/999": "read",
+                "layer:///identities/a": "sent",
+                "layer:///identities/b": "delivered",
+                "layer:///identities/c": "read"
+            };
 
             // Posttest
             expect(m._setReceiptStatus).toHaveBeenCalledWith(1, 2, 3);
@@ -640,17 +673,32 @@ describe("The Message class", function() {
             // Setup
             spyOn(m, "_triggerAsync");
             m.sender = client.user;
-            m.__recipientStatus = {999: "read", a: "sent", b: "delivered", c: "delivered"};
-            m.__recipientStatus[client.userId] = "read";
+            m.__recipientStatus = {
+                "layer:///identities/999": "read",
+                "layer:///identities/a": "sent",
+                "layer:///identities/b": "delivered",
+                "layer:///identities/c": "delivered"
+            };
+            m.__recipientStatus[client.user.id] = "read";
             var oldValue = m.__recipientStatus;
 
             // Run
-            m.recipientStatus = {999: "read", a: "sent", b: "delivered", c: "read"};
+            m.recipientStatus = {
+                "layer:///identities/999": "read",
+                "layer:///identities/a": "sent",
+                "layer:///identities/b": "delivered",
+                "layer:///identities/c": "read"
+            };
 
             // Posttest
             expect(m._triggerAsync).toHaveBeenCalledWith("messages:change", {
                 oldValue: oldValue,
-                newValue: {999: "read", a: "sent", b: "delivered", c: "read"},
+                newValue: {
+                    "layer:///identities/999": "read",
+                    "layer:///identities/a": "sent",
+                    "layer:///identities/b": "delivered",
+                    "layer:///identities/c": "read"
+                },
                 property: "recipientStatus"
             })
         });
@@ -658,13 +706,23 @@ describe("The Message class", function() {
         it("Should not trigger change events if this user was NOT sender and another users status changes", function() {
             // Setup
             spyOn(m, "_triggerAsync");
-            m.sender.__userId = 'a';
-            m.__recipientStatus = {999: "read", a: "sent", b: "delivered", c: "delivered"};
-            m.__recipientStatus[client.userId] = "read";
+            m.sender.userId = 'a';
+            m.__recipientStatus = {
+                "layer:///identities/999": "read",
+                "layer:///identities/a": "sent",
+                "layer:///identities/b": "delivered",
+                "layer:///identities/c": "delivered"
+            };
+            m.__recipientStatus[client.user.id] = "read";
             var oldValue = m.__recipientStatus;
 
             // Run
-            m.recipientStatus = {999: "read", a: "sent", b: "delivered", c: "read"};
+            m.recipientStatus = {
+                "layer:///identities/999": "read",
+                "layer:///identities/a": "sent",
+                "layer:///identities/b": "delivered",
+                "layer:///identities/c": "read"
+            };
 
             // Posttest
             expect(m._triggerAsync).not.toHaveBeenCalled();
@@ -673,9 +731,14 @@ describe("The Message class", function() {
         it("Should trigger change events if this user was not the sender and this users status changes to read", function() {
             // Setup
             spyOn(m, "_triggerAsync");
-            m.sender.__userId = 'a';
-            m.__recipientStatus = {999: "read", a: "sent", b: "delivered", c: "delivered"};
-            m.__recipientStatus[client.userId] = "delivered";
+            m.sender.userId = 'a';
+            m.__recipientStatus = {
+                "layer:///identities/999": "read",
+                "layer:///identities/a": "sent",
+                "layer:///identities/b": "delivered",
+                "layer:///identities/c": "delivered"
+            };
+            m.__recipientStatus[client.user.id] = "delivered";
             var oldValue = m.__recipientStatus;
 
             var newValue = JSON.parse(JSON.stringify(oldValue));
@@ -695,9 +758,14 @@ describe("The Message class", function() {
         it("Should not trigger change events if this user was sender and this users status changes to delivered", function() {
             // Setup
             spyOn(m, "_triggerAsync");
-            m.sender.__userId = 'a';
-            m.__recipientStatus = {999: "read", a: "sent", b: "delivered", c: "delivered"};
-            m.__recipientStatus[client.userId] = "sent";
+            m.sender.userId = 'a';
+            m.__recipientStatus = {
+                "layer:///identities/999": "read",
+                "layer:///identities/a": "sent",
+                "layer:///identities/b": "delivered",
+                "layer:///identities/c": "delivered"
+            };
+            m.__recipientStatus[client.user.id] = "sent";
             var oldValue = m.__recipientStatus;
 
             var newValue = JSON.parse(JSON.stringify(oldValue));
@@ -714,7 +782,7 @@ describe("The Message class", function() {
     describe("The _setReceiptStatus() method", function() {
         var m;
         beforeEach(function() {
-            conversation.participants = ["a","b","d","999"];
+            conversation.participants = [userIdentity1, userIdentity2, userIdentity3, client.user];
             m = new layer.Message({
                 parts: "hello",
                 conversation: conversation,
@@ -1824,7 +1892,7 @@ describe("The Message class", function() {
                 client: client
             });
             var data = JSON.parse(JSON.stringify(responses.message1));
-            expect(client.getIdentity(data.sender.user_id)).toEqual(jasmine.any(layer.UserIdentity));
+            expect(client.getIdentity(data.sender.user_id)).toEqual(jasmine.any(layer.Identity));
 
             m._populateFromServer(data);
 
@@ -1842,7 +1910,7 @@ describe("The Message class", function() {
             m._populateFromServer(data);
 
             // Posttest
-            expect(m.sender).toEqual(jasmine.any(layer.UserIdentity));
+            expect(m.sender).toEqual(jasmine.any(layer.Identity));
             expect(m.sender.userId).toEqual(data.sender.user_id);
         });
 
@@ -1912,15 +1980,15 @@ describe("The Message class", function() {
             spyOn(m, "__updateRecipientStatus");
 
             // Run
-            m.recipientStatus.a = "delivered";
+            m.recipientStatus["layer:///identities/a"] = "delivered";
             m._handlePatchEvent({
                 a: "delivered"
             }, {
                 a: "sent"
-            }, ["recipient_status.a"]);
+            }, ["recipient_status.layer:///identities/a"]);
 
             // Posttest
-            expect(m.__updateRecipientStatus).toHaveBeenCalledWith({a: "delivered"}, {a: "sent"});
+            expect(m.__updateRecipientStatus).toHaveBeenCalledWith({"layer:///identities/a": "delivered"}, {"layer:///identities/a": "sent"});
         });
     });
 
@@ -2178,7 +2246,7 @@ describe("The Message class", function() {
         it("Should NOT send delivery receipt if marked as delivered", function() {
             // Setup
             var data = JSON.parse(JSON.stringify(responses.message1));
-            data.recipient_status["999"] = "delivered";
+            data.recipient_status["layer:///identities/999"] = "delivered";
             var tmp = layer.Message.prototype.recipientStatus;
             spyOn(layer.Message.prototype, "recipientStatus");
 
