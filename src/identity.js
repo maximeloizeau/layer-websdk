@@ -156,7 +156,7 @@ class Identity extends Syncable {
     if (this.isFullIdentity) return;
     this._xhr({
       method: 'PUT',
-      url: this.url.replace(/identities/, 'following'),
+      url: this.url.replace(/identities/, 'following/users'),
       syncable: {},
     }, (result) => {
       if (result.success) this._load();
@@ -175,7 +175,7 @@ class Identity extends Syncable {
    */
   unfollow() {
     this._xhr({
-      url: this.url.replace(/identities/, 'following'),
+      url: this.url.replace(/identities/, 'following/users'),
       method: 'DELETE',
       syncable: {},
     });
