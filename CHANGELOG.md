@@ -31,11 +31,11 @@
   * Introduces the layer.Announcement class
   * Introduces the ability to create Queries to receive Announcements
 * layer.Identity
-    * Introduces the layer.UserIdentity and layer.ServiceIdentity clases.  A UserIdentity instance represents a user of the system that you can chat with.  A ServiceIdentity represents a Bot, or named service that posts messages and announcements.
+    * Introduces the layer.Identity class.  An Identity instance represents a user of the system or bot that you can chat with.
     * Introduces the ability to create Queries to receive Identities
 * layer.User has been removed.
 * layer.Client
-  * Adds a `user` property containing a `layer.UserIdentity` instance representing the authenticated user of this session.
+  * Adds a `user` property containing a `layer.Identity` instance representing the authenticated user of this session.
   * Removes support for `client.createConversation(array)` shorthand; now requires `client.createConversation({participants: array})`.
   * Conversations, Messages, Identities and unfinishedServer Requests can now be persisted between sessions.  See layer.Client.persistenceFeatures for more detail.
 * layer.OnlineStateManager: Now starts managing isOnline state as soon as `client.connect()` or `client.connectWithSession()` are called.

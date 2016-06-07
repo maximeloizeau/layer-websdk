@@ -25,16 +25,17 @@ describe("The Client class", function() {
         });
         client.sessionToken = "sessionToken";
 
-        client.user = userIdentity = new layer.UserIdentity({
+        client.user = userIdentity = new layer.Identity({
             clientId: client.appId,
             id: "layer:///identities/Frodo",
             displayName: "Frodo",
             userId: "Frodo"
         });
-        userIdentity2 = new layer.UserIdentity({
+        userIdentity2 = new layer.Identity({
             clientId: client.appId,
             id: "layer:///identities/1",
-            displayName: "UserIdentity"
+            displayName: "UserIdentity",
+            userId: '1'
         });
         client.isReady = true;
     });
@@ -61,9 +62,12 @@ describe("The Client class", function() {
             expect(client._messagesHash).toEqual({});
             expect(client._conversationsHash).toEqual({});
             expect(client._queriesHash).toEqual({});
-            expect(client._identitiesHash).toEqual({});
-            expect(client._serviceIdentitiesHash).toEqual({});
             expect(client._scheduleCheckAndPurgeCacheItems).toEqual([]);
+
+            var identityHash = {};
+            identityHash[client.user.id] = client.user;
+            identityHash[userIdentity2.id] = userIdentity2;
+            expect(client._identitiesHash).toEqual(identityHash);
         });
 
 
@@ -130,13 +134,6 @@ describe("The Client class", function() {
     describe("Methods that require clientReady", function() {
         beforeEach(function() {
             client.isTrustedDevice = true;
-            client.user = new layer.UserIdentity({
-               userId: client.userId,
-               displayName: "Frodo2",
-               syncState: layer.Constants.SYNC_STATE.LOADING,
-               clientId: client.appId,
-
-           });
             client._clientAuthenticated();
             spyOn(client.dbManager, "getObjects").and.callFake(function(tableName, ids, callback) {
                callback([]);
@@ -147,7 +144,7 @@ describe("The Client class", function() {
 
         describe("The _cleanup() method", function() {
             afterEach(function() {
-                client._messagesHash = client._conversationsHash = client._queriesHash = client._identitiesHash = client._serviceIdentitiesHash = {};
+                client._messagesHash = client._conversationsHash = client._queriesHash = client._identitiesHash = {};
             });
 
             it("Should destroy all Messages", function() {
@@ -205,22 +202,19 @@ describe("The Client class", function() {
                 // Setup
                 client._clientAuthenticated();
                 client._clientReady();
-                var serviceIdentity = new layer.ServiceIdentity({
+                var serviceIdentity = new layer.Identity({
                     clientId: client.appId,
-                    id: "layer:///serviceidentities/2",
-                    name: "ServiceIdentity"
+                    id: "layer:///identities/2",
+                    displayName: "ServiceIdentity"
                 });
                 client._identitiesHash[userIdentity.id] = userIdentity;
-                client._serviceIdentitiesHash[serviceIdentity.id] = serviceIdentity;
 
                 // Run
                 client._cleanup();
 
                 // Posttest
                 expect(userIdentity.isDestroyed).toBe(true);
-                expect(serviceIdentity.isDestroyed).toBe(true);
                 expect(client._identitiesHash).toBe(null);
-                expect(client._serviceIdentitiesHash).toBe(null);
             });
 
             it("Should close the websocket", function() {
@@ -738,6 +732,7 @@ describe("The Client class", function() {
         describe("The _addIdentity() method", function() {
             it("Should not add a UserIdentity that already exists", function() {
                 // Setup
+                client._identitiesHash = {};
                 client._identitiesHash[userIdentity.id] = userIdentity;
                 userIdentity2.id = userIdentity.id;
                 expect(userIdentity).not.toBe(userIdentity2);
@@ -753,7 +748,7 @@ describe("The Client class", function() {
 
             it("Should add a UserIdentity and trigger identities:add", function() {
                 // Setup
-                expect(client._identitiesHash).toEqual({});
+                client._identitiesHash = {};
                 spyOn(client, "_triggerAsync");
 
                 // Run
@@ -765,64 +760,24 @@ describe("The Client class", function() {
                 expect(client._identitiesHash).toEqual(endHash);
                 expect(client._triggerAsync).toHaveBeenCalledWith('identities:add', {identities: [userIdentity]});
             });
-
-            it("Should not add a ServiceIdentity that already exists", function() {
-                var serviceIdentity = new layer.ServiceIdentity({
-                    clientId: client.appId,
-                    id: "layer:///serviceidentities/2",
-                    name: "ServiceIdentity"
-                });
-                client._serviceIdentitiesHash[serviceIdentity.id] = serviceIdentity;
-                var serviceIdentity2 = new layer.ServiceIdentity({
-                    clientId: client.appId,
-                    id: "layer:///serviceidentities/2",
-                    name: "ServiceIdentity"
-                });
-                expect(client._serviceIdentitiesHash).toEqual({"layer:///serviceidentities/2": serviceIdentity});
-                expect(serviceIdentity).not.toBe(serviceIdentity2);
-
-                // Run
-                client._addIdentity(serviceIdentity2);
-
-                // Posttest
-                expect(client._serviceIdentitiesHash).toEqual({"layer:///serviceidentities/2": serviceIdentity});
-            });
-
-            it("Should add a ServiceIdentity but NOT trigger any events", function() {
-                var serviceIdentity = new layer.ServiceIdentity({
-                    clientId: client.appId,
-                    id: "layer:///serviceidentities/2",
-                    name: "ServiceIdentity"
-                });
-                expect(client._serviceIdentitiesHash).toEqual({});
-                spyOn(client, "_triggerAsync");
-
-                // Run
-                client._addIdentity(serviceIdentity);
-
-                // Posttest
-                expect(client._serviceIdentitiesHash).toEqual({"layer:///serviceidentities/2": serviceIdentity});
-                expect(client._triggerAsync).not.toHaveBeenCalled();
-            });
-
         });
 
         describe("The _removeIdentity() method", function() {
             var serviceIdentity;
             beforeEach(function() {
-                serviceIdentity = new layer.ServiceIdentity({
+                serviceIdentity = new layer.Identity({
                     clientId: client.appId,
-                    id: "layer:///serviceidentities/2",
-                    name: "ServiceIdentity"
+                    id: "layer:///identities/2",
+                    displayName: "ServiceIdentity"
                 });
                 client._identitiesHash = {};
                 client._identitiesHash[userIdentity.id] = userIdentity;
-                client._serviceIdentitiesHash = {"layer:///serviceidentities/2": serviceIdentity};
+                client._identitiesHash[serviceIdentity.id] = serviceIdentity;
             });
 
             it("Should ignore irrelevant ID prefixes", function() {
                 expect(function() {
-                    client._removeIdentity(new layer.UserIdentity({
+                    client._removeIdentity(new layer.Identity({
                         id: "layer:///mountains/2",
                         clientId: client.appId
                     }));
@@ -830,47 +785,45 @@ describe("The Client class", function() {
             });
 
             it("Should ignore IDS not cached", function() {
-                client._removeIdentity(new layer.UserIdentity({
+                client._removeIdentity(new layer.Identity({
                     id: "layer:///identities/fooled-you",
                     clientId: client.appId
                 }));
-                client._removeIdentity(new layer.UserIdentity({
-                    id: "layer:///serviceidentities/fooled-you",
+                client._removeIdentity(new layer.Identity({
+                    id: "layer:///identities/fooled-you",
                     clientId: client.appId
                 }));
 
                 // Posttest
                 var endTest = {};
                 endTest[userIdentity.id] = userIdentity;
+                endTest[serviceIdentity.id] = serviceIdentity;
                 expect(client._identitiesHash).toEqual(endTest);
-                expect(client._serviceIdentitiesHash).toEqual({"layer:///serviceidentities/2": serviceIdentity});
             });
 
             it("Should remove UserIdentity and trigger identities:remove", function() {
                 spyOn(client, "_triggerAsync");
                 client._removeIdentity(userIdentity);
-                expect(client._identitiesHash).toEqual({});
+                var endTest = {};
+                endTest[serviceIdentity.id] = serviceIdentity;
+                expect(client._identitiesHash).toEqual(endTest);
                 expect(client._triggerAsync).toHaveBeenCalledWith('identities:remove', {identities: [userIdentity]});
             });
 
-            it("Should remove ServiceIdentity and not trigger events", function() {
-                spyOn(client, "_triggerAsync");
-                client._removeIdentity(serviceIdentity);
-                expect(client._serviceIdentitiesHash).toEqual({});
-                expect(client._triggerAsync).not.toHaveBeenCalled();
-            });
         });
 
         describe("The getIdentity() method", function() {
             var serviceIdentity;
             beforeEach(function() {
-                serviceIdentity = new layer.ServiceIdentity({
+                serviceIdentity = new layer.Identity({
                     clientId: client.appId,
-                    id: "layer:///serviceidentities/2",
-                    name: "ServiceIdentity"
+                    id: "layer:///identities/2",
+                    displayName: "ServiceIdentity"
                 });
-                client._identitiesHash = {"layer:///identities/1": userIdentity2};
-                client._serviceIdentitiesHash = {"layer:///serviceidentities/2": serviceIdentity};
+                client._identitiesHash = {
+                    "layer:///identities/1": userIdentity2,
+                    "layer:///identities/2": serviceIdentity
+                };
             });
 
             it("Should get the user by ID", function() {
@@ -908,14 +861,14 @@ describe("The Client class", function() {
             });
 
             it("Should call follow() on a new Identity", function() {
-                var tmp = layer.UserIdentity.prototype.follow;
-                spyOn(layer.UserIdentity.prototype, "follow");
+                var tmp = layer.Identity.prototype.follow;
+                spyOn(layer.Identity.prototype, "follow");
 
                 // Run
                 var result1 = client.followIdentity("1");
 
                 // Posttest
-                expect(layer.UserIdentity.prototype.follow.calls.count()).toEqual(1);
+                expect(layer.Identity.prototype.follow.calls.count()).toEqual(1);
                 expect(result1.id).toEqual("layer:///identities/1");
             });
         });
@@ -936,14 +889,14 @@ describe("The Client class", function() {
             });
 
             it("Should call unfollow() on a new Identity", function() {
-                var tmp = layer.UserIdentity.prototype.unfollow;
-                spyOn(layer.UserIdentity.prototype, "unfollow");
+                var tmp = layer.Identity.prototype.unfollow;
+                spyOn(layer.Identity.prototype, "unfollow");
 
                 // Run
                 var result1 = client.unfollowIdentity("1");
 
                 // Posttest
-                expect(layer.UserIdentity.prototype.unfollow.calls.count()).toEqual(1);
+                expect(layer.Identity.prototype.unfollow.calls.count()).toEqual(1);
                 expect(result1.id).toEqual("layer:///identities/1");
             });
 
@@ -988,8 +941,8 @@ describe("The Client class", function() {
                 conversation = client.createConversation({ participants: ["a"] });
                 message = conversation.createMessage("hey").send();
                 announcement = new layer.Announcement({
-                client: client,
-                parts: "Hey Ho"
+                    client: client,
+                    parts: "Hey Ho"
                 });
                 client._addMessage(announcement);
                 query = client.createQuery({
@@ -997,8 +950,8 @@ describe("The Client class", function() {
                 });
                 userIdentity = client._createObject(JSON.parse(JSON.stringify(responses.useridentity)));
                 serviceIdentity = client._createObject({
-                    id: "layer:///serviceidentities/2",
-                    name: "ServiceIdentity"
+                    id: "layer:///identities/2",
+                    displayName: "ServiceIdentity"
                 });
             });
 
@@ -1008,20 +961,22 @@ describe("The Client class", function() {
                 var cHash = {},
                     mHash = {},
                     qHash = {},
-                    identHash = {},
-                    serviceIdentHash = {};
+                    identHash = {};
                 cHash[conversation.id] = conversation;
                 mHash[message.id] = message;
                 mHash[announcement.id] = announcement;
                 qHash[query.id] = query;
                 identHash[userIdentity.id] = userIdentity;
-                serviceIdentHash[serviceIdentity.id] = serviceIdentity;
+                identHash[client.user.id] = client.user;
+                identHash[client.getIdentity('a').id] = client.getIdentity('a');
+                identHash[responses.useridentity.id] = client.getIdentity(responses.useridentity.id);
+                identHash[userIdentity2.id] = userIdentity2;
+                identHash[serviceIdentity.id] = serviceIdentity;
 
                 expect(client._conversationsHash).toEqual(cHash);
                 expect(client._messagesHash).toEqual(mHash);
                 expect(client._queriesHash).toEqual(qHash);
                 expect(client._identitiesHash).toEqual(identHash);
-                expect(client._serviceIdentitiesHash).toEqual(serviceIdentHash);
             });
 
             it("Should get a Conversation", function() {
@@ -1156,12 +1111,12 @@ describe("The Client class", function() {
 
             it("Should call UserIdentity._createFromServer", function() {
                 // Setup
-                var tmp = layer.UserIdentity._createFromServer;
-                var identity = new layer.UserIdentity({
-                    id: responses.useridentity.id,
+                var tmp = layer.Identity._createFromServer;
+                var identity = new layer.Identity({
+                    id: "layer:///identities/darned",
                     clientId: client.appId
                 });
-                spyOn(layer.UserIdentity, "_createFromServer").and.returnValue(identity);
+                spyOn(layer.Identity, "_createFromServer").and.returnValue(identity);
                 var identityObj = JSON.parse(JSON.stringify(responses.useridentity));
 
                 // Run
@@ -1169,23 +1124,23 @@ describe("The Client class", function() {
 
                 // Posttest
                 expect(identity2).toBe(identity);
-                expect(layer.UserIdentity._createFromServer).toHaveBeenCalledWith(identityObj, client);
+                expect(layer.Identity._createFromServer).toHaveBeenCalledWith(identityObj, client);
 
                 // Restore
-                layer.UserIdentity._createFromServer = tmp;
+                layer.Identity._createFromServer = tmp;
             });
 
             it("Should call ServiceIdentity._createFromServer", function() {
                 // Setup
-                var tmp = layer.ServiceIdentity._createFromServer;
-                var identity = new layer.ServiceIdentity({
-                    id: layer.ServiceIdentity.prefixUUID + '/dohbot',
+                var tmp = layer.Identity._createFromServer;
+                var identity = new layer.Identity({
+                    id: layer.Identity.prefixUUID + '/dohbot',
                     clientId: client.appId
                 });
-                spyOn(layer.ServiceIdentity, "_createFromServer").and.returnValue(identity);
+                spyOn(layer.Identity, "_createFromServer").and.returnValue(identity);
                 var identityObj = {
-                    name: "dohbot",
-                    id: "layer:///serviceidentities/dohbot"
+                    displayName: "dohbot",
+                    id: "layer:///identities/dohbot"
                 };
 
                 // Run
@@ -1193,10 +1148,10 @@ describe("The Client class", function() {
 
                 // Posttest
                 expect(identity2).toBe(identity);
-                expect(layer.ServiceIdentity._createFromServer).toHaveBeenCalledWith(identityObj, client);
+                expect(layer.Identity._createFromServer).toHaveBeenCalledWith(identityObj, client);
 
                 // Restore
-                layer.ServiceIdentity._createFromServer = tmp;
+                layer.Identity._createFromServer = tmp;
             });
         });
 
@@ -1210,13 +1165,14 @@ describe("The Client class", function() {
                 var c2 = new layer.Conversation({
                     client: client
                 });
+                client._delayedTriggers = [];
                 client._triggerAsync("conversations:a", {value: "a"});
                 client._triggerAsync("conversations:b", {value: "b"});
                 client._triggerAsync("conversations:add", {conversations: [c1]});
                 client._triggerAsync("conversations:add", {conversations: [c2]});
                 client._triggerAsync("conversations:c", {value: "c"});
                 spyOn(client, "_foldEvents");
-debugger;
+
                 // Run
                 client._processDelayedTriggers();
 
@@ -1320,8 +1276,8 @@ debugger;
 
             it("Should call _foldEvents on all identities:add events", function() {
                 // Setup
-                var i1 = new layer.UserIdentity({clientId: client.appId, userId: "a", id: "layer:///identities/a"});
-                var i2 = new layer.UserIdentity({clientId: client.appId, userId: "b", id: "layer:///identities/b"});
+                var i1 = new layer.Identity({clientId: client.appId, userId: "a", id: "layer:///identities/a"});
+                var i2 = new layer.Identity({clientId: client.appId, userId: "b", id: "layer:///identities/b"});
                 client._delayedTriggers = [];
                 client._triggerAsync("identities:a", {value: "a"});
                 client._triggerAsync("identities:b", {value: "b"});
@@ -1347,8 +1303,8 @@ debugger;
 
             it("Should call _foldEvents on all identities:remove events", function() {
                 // Setup
-                var i1 = new layer.UserIdentity({clientId: client.appId, userId: "a", id: "layer:///identities/a"});
-                var i2 = new layer.UserIdentity({clientId: client.appId, userId: "b", id: "layer:///identities/b"});
+                var i1 = new layer.Identity({clientId: client.appId, userId: "a", id: "layer:///identities/a"});
+                var i2 = new layer.Identity({clientId: client.appId, userId: "b", id: "layer:///identities/b"});
                 client._delayedTriggers = [];
                 client._triggerAsync("identities:a", {value: "a"});
                 client._triggerAsync("identities:b", {value: "b"});
@@ -1428,9 +1384,12 @@ debugger;
             });
 
             it("Should return matching Conversation", function() {
+                // Setup
+                var identity = client.getIdentity("b");
+
                 // Run
                 var result = client.findCachedConversation(function(conversation) {
-                    return conversation.participants.indexOf("b") != -1;
+                    return conversation.participants.indexOf(identity) != -1;
                 });
 
                 // Posttest
@@ -1487,10 +1446,10 @@ debugger;
             it("Should reset identity data", function() {
                 // Setup
                 client._clientReady();
-                var serviceIdentity = new layer.ServiceIdentity({
+                var serviceIdentity = new layer.Identity({
                     clientId: client.appId,
-                    id: "layer:///serviceidentities/2",
-                    name: "ServiceIdentity"
+                    id: "layer:///identities/2",
+                    displayName: "ServiceIdentity"
                 });
 
                 // Run
@@ -1498,7 +1457,6 @@ debugger;
 
                 // Posttest
                 expect(client._identitiesHash).toEqual({});
-                expect(client._serviceIdentitiesHash).toEqual({});
             });
         });
 

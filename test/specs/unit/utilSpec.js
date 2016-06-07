@@ -245,7 +245,7 @@ describe("The Util Library", function() {
         beforeEach(function() {
             client = new layer.Client({appId: "fred"});
             client.userId = "c";
-            client.user = new layer.UserIdentity({
+            client.user = new layer.Identity({
                 clientId: client.appId,
                 userId: client.userId,
                 id: "layer:///identities/" + client.userId,
@@ -328,47 +328,55 @@ describe("The Util Library", function() {
         });
 
         it("Should update recipientStatus", function() {
-            message.recipientStatus = {a: "sent", b: "sent", c: "read"};
+            message.recipientStatus = {
+                "layer:///identities/a": "sent",
+                "layer:///identities/b": "sent",
+                "layer:///identities/c": "read"
+            };
             layer.Util.layerParse({
                 client: client,
                 object: message,
                 type: 'Message',
                 operations: [
-                    {operation: "set", property: "recipient_status.a", value: "read"},
-                    {operation: "set", property: "recipient_status.b", value: "delivered"}
+                    {operation: "set", property: "recipient_status.layer:///identities/a", value: "read"},
+                    {operation: "set", property: "recipient_status.layer:///identities/b", value: "delivered"}
                 ]
             });
 
             // Posttest
             expect(message.recipientStatus).toEqual({
-                a: "read",
-                b: "delivered",
-                c: "read"
+                "layer:///identities/a": "read",
+                "layer:///identities/b": "delivered",
+                "layer:///identities/c": "read"
             });
         });
 
         it("Should call __updateRecipientStatus", function() {
-            message.recipientStatus = {a: "sent", b: "sent", c: "read"};
+            message.recipientStatus = {
+                "layer:///identities/a": "sent",
+                "layer:///identities/b": "sent",
+                "layer:///identities/c": "read"
+            };
             spyOn(message, "__updateRecipientStatus");
             layer.Util.layerParse({
                 client: client,
                 object: message,
                 type: 'Message',
                 operations: [
-                    {operation: "set", property: "recipient_status.a", value: "read"},
-                    {operation: "set", property: "recipient_status.b", value: "delivered"}
+                    {operation: "set", property: "recipient_status.layer:///identities/a", value: "read"},
+                    {operation: "set", property: "recipient_status.layer:///identities/b", value: "delivered"}
                 ]
             });
 
             // Posttest
             expect(message.__updateRecipientStatus).toHaveBeenCalledWith({
-                a: "read",
-                b: "delivered",
-                c: "read"
+                "layer:///identities/a": "read",
+                "layer:///identities/b": "delivered",
+                "layer:///identities/c": "read"
             }, {
-                a: "sent",
-                b: "sent",
-                c: "read"
+                "layer:///identities/a": "sent",
+                "layer:///identities/b": "sent",
+                "layer:///identities/c": "read"
             });
         });
     });

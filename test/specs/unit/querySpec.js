@@ -20,7 +20,7 @@ describe("The Query Class", function() {
         });
         client.sessionToken = "sessionToken";
         client.userId = "Frodo";
-              client.user = new layer.UserIdentity({
+              client.user = new layer.Identity({
           clientId: client.appId,
           userId: client.userId,
           id: "layer:///identities/" + client.userId,
@@ -1100,8 +1100,8 @@ describe("The Query Class", function() {
         });
 
         it("Should use _getInsertConversationIndex to position result", function() {
-          var c1 = client.createConversation(["a", "b", "c"]);
-          var c2 = client.createConversation(["b", "c", "d"]);
+          var c1 = client.createConversation({ participants: ["a", "b", "c"] });
+          var c2 = client.createConversation({ participants: ["b", "c", "d"] });
           var c3 = JSON.parse(JSON.stringify(responses.conversation2));
           c3.id += "f";
           c1.createdAt = new Date("2010-10-10");
@@ -1593,7 +1593,7 @@ describe("The Query Class", function() {
             });
 
             it("Should not touch data array if dataType is object but item not in the data", function() {
-                var conversation = client.createConversation(["abc"]);
+                var conversation = client.createConversation({ participants: ["abc"] });
                 var evt = new layer.LayerEvent({
                     property: "participants",
                     oldValue: ["abc"],
@@ -1813,7 +1813,7 @@ describe("The Query Class", function() {
             });
 
             it("Should not touch data array if dataType is object but item not in the data", function() {
-                var conversation = client.createConversation(["abc"]);
+                var conversation = client.createConversation({ participants: ["abc"] });
                 var evt = new layer.LayerEvent({
                     property: "participants",
                     oldValue: ["abc"],
@@ -2085,7 +2085,7 @@ describe("The Query Class", function() {
         });
 
         it("Should replace data with a new array containing new results if dataType is object", function() {
-            var conversation2 = client.createConversation(["aza"]);
+            var conversation2 = client.createConversation({ participants: ["aza"] });
             var data = query.data = [];
 
             // Run
@@ -2099,7 +2099,7 @@ describe("The Query Class", function() {
         });
 
         it("Should insert new data into results if dataType is instance", function() {
-            var conversation2 = client.createConversation(["aza"]);
+            var conversation2 = client.createConversation({ participants: ["aza"] });
             query.dataType = "instance";
             var data = query.data = [];
 
@@ -2114,7 +2114,7 @@ describe("The Query Class", function() {
         });
 
         it("Should only operate on new values", function() {
-            var conversation2 = client.createConversation(["aza"]);
+            var conversation2 = client.createConversation({ participants: ["aza"] });
             var data = query.data = [conversation.toObject()];
 
             // Run
@@ -2128,7 +2128,7 @@ describe("The Query Class", function() {
         });
 
         it("Should trigger change event if new values", function() {
-            var conversation2 = client.createConversation(["aza"]);
+            var conversation2 = client.createConversation({ participants: ["aza"] });
             var data = query.data = [];
             spyOn(query, "trigger");
 
@@ -2165,7 +2165,7 @@ describe("The Query Class", function() {
         });
 
         it("Should increase the totalSize property", function() {
-            var conversation2 = client.createConversation(["aza"]);
+            var conversation2 = client.createConversation({ participants: ["aza"] });
             var data = query.data = [];
             expect(query.totalSize).toEqual(0);
 
@@ -2188,7 +2188,7 @@ describe("The Query Class", function() {
                 paginationWindow: 15,
                 dataType: "object"
             });
-            conversation2 = client.createConversation(["cdc"]);
+            conversation2 = client.createConversation({ participants: ["cdc"] });
             query.data = [conversation.toObject(), conversation2.toObject()];
 
         });
@@ -2241,7 +2241,7 @@ describe("The Query Class", function() {
         });
 
         it("Should only operate on existing values", function() {
-            var conversation3 = client.createConversation(["zbd"]);
+            var conversation3 = client.createConversation({ participants: ["zbd"] });
 
             // Run
             query._handleConversationRemoveEvent({
@@ -2290,8 +2290,8 @@ describe("The Query Class", function() {
         });
 
         it("Should increase the totalSize property", function() {
-            var conversation2 = client.createConversation(["aza"]);
-            var conversation3 = client.createConversation(["azab"]);
+            var conversation2 = client.createConversation({ participants: ["aza"] });
+            var conversation3 = client.createConversation({ participants: ["azab"] });
             var data = query.data = [conversation, conversation2, conversation3];
             query.totalSize = 3;
 

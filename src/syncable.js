@@ -40,36 +40,6 @@ class Syncable extends Root {
     return ClientRegistry.get(this.clientId);
   }
 
-  static load(id, client) {
-    if (!client || !(client instanceof Root)) throw new Error(LayerError.dictionary.clientMissing);
-
-    const obj = {
-      id,
-      url: client.url + id.substring(8),
-      clientId: client.appId,
-    };
-
-    const ConstructorClass = Syncable.subclasses.filter(aClass => obj.id.indexOf(aClass.prefixUUID) === 0)[0];
-    const syncItem = new ConstructorClass(obj);
-    const typeName = ConstructorClass.eventPrefix;
-
-    if (typeName) {
-      client.dbManager.getObjects(typeName, [id], (items) => {
-        if (items.length) {
-          syncItem._populateFromServer(items[0]);
-          syncItem.trigger(typeName + ':loaded');
-        } else {
-          syncItem._load();
-        }
-      });
-    } else {
-      syncItem._load();
-    }
-
-    syncItem.syncState = SYNC_STATE.LOADING;
-    return syncItem;
-  }
-
   /**
    * Fire an XHR request using the URL for this resource.
    *
@@ -196,6 +166,20 @@ class Syncable extends Root {
   }
 
 
+  /**
+   * Load the resource identified via a Layer ID.
+   *
+   * Will load the requested resource from persistence or server as needed,
+   * and trigger `type-name:loaded` when its loaded.  Instance returned by this
+   * method will have only ID and URL properties, all others are unset until
+   * the `conversations:loaded`, `messages:loaded`, etc... event has fired.
+   *
+   * @method load
+   * @static
+   * @param {string} id - `layer:///messages/UUID`
+   * @param {layer.Client} client
+   * @return {layer.Syncable} - Returns an empty object that will be populated once data is loaded.
+   */
   static load(id, client) {
     if (!client || !(client instanceof Root)) throw new Error(LayerError.dictionary.clientMissing);
 
@@ -211,6 +195,7 @@ class Syncable extends Root {
 
     if (typeName) {
       client.dbManager.getObjects(typeName, [id], (items) => {
+        if (syncItem.isDestroyed) return;
         if (items.length) {
           syncItem._populateFromServer(items[0]);
           syncItem.trigger(typeName + ':loaded');

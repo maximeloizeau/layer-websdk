@@ -26,7 +26,7 @@ describe("The MessageParts class", function() {
             url: "https://doh.com"
         });
         client.userId = "999";
-        client.user = new layer.UserIdentity({
+        client.user = new layer.Identity({
           clientId: client.appId,
           userId: client.userId,
           id: "layer:///identities/" + client.userId,
@@ -56,8 +56,10 @@ describe("The MessageParts class", function() {
 
         conversation = layer.Conversation._createFromServer(responses.conversation2, client);
         conversation.lastMessage.destroy();
+
         requests.reset();
-        client._clientReady();
+        client.syncManager.queue = [];
+
     });
     afterEach(function() {
         client.destroy();

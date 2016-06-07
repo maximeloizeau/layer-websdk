@@ -19,7 +19,7 @@ describe("The Typing Indicator Classes", function() {
         });
         client.sessionToken = "sessionToken";
         client.userId = "Frodo";
-        client.user = new layer.UserIdentity({
+        client.user = new layer.Identity({
             clientId: client.appId,
             userId: client.userId,
             id: "layer:///identities/" + client.userId,
@@ -36,7 +36,7 @@ describe("The Typing Indicator Classes", function() {
             sessionOwner: true
         });
 
-        johnIdentity = new layer.UserIdentity({
+        johnIdentity = new layer.Identity({
             client: client,
             userId: "JohnDoh",
             id: "layer:///identities/JohnDoh",
@@ -44,7 +44,7 @@ describe("The Typing Indicator Classes", function() {
         });
         client._addIdentity(johnIdentity);
 
-        janeIdentity = new layer.UserIdentity({
+        janeIdentity = new layer.Identity({
             client: client,
             userId: "JaneDoh",
             id: "layer:///identities/JaneDoh",
@@ -505,20 +505,20 @@ describe("The Typing Indicator Classes", function() {
 
         describe("The setConversation() method", function() {
             it("Should update the conversation property", function() {
-                var conversation = client.createConversation(["a"]);
+                var conversation = client.createConversation({participants: ["a"]});
                 listener.setConversation(conversation);
                 expect(listener.conversation).toBe(conversation);
             });
 
             it("Should call publisher.setConversation", function() {
                 spyOn(listener.publisher, "setConversation");
-                var conversation = client.createConversation(["a"]);
+                var conversation = client.createConversation({participants: ["a"]});
                 listener.setConversation(conversation);
                 expect(listener.publisher.setConversation).toHaveBeenCalledWith(conversation);
             });
 
             it("Should not call publisher.setConversation if no change", function() {
-                var conversation = client.createConversation(["a"]);
+                var conversation = client.createConversation({participants: ["a"]});
                 listener.setConversation(conversation);
                 spyOn(listener.publisher, "setConversation");
 
@@ -639,7 +639,7 @@ describe("The Typing Indicator Classes", function() {
                 spyOn(publisher, "setState").and.callFake(function() {
                     hadConversation = publisher.conversation;
                 });
-                var conversation2 = client.createConversation(["f"]);
+                var conversation2 = client.createConversation({participants: ["f"]});
                 publisher.setConversation(conversation2);
                 expect(publisher.setState).toHaveBeenCalledWith(layer.TypingIndicators.FINISHED);
                 expect(hadConversation).not.toBe(conversation2);
@@ -647,7 +647,7 @@ describe("The Typing Indicator Classes", function() {
 
             it("Should end with a FINISHED state", function() {
                 publisher.state = layer.TypingIndicators.STARTED;
-                var conversation2 = client.createConversation(["f"]);
+                var conversation2 = client.createConversation({participants: ["f"]});
                 publisher.setConversation(conversation2);
                 expect(publisher.state).toEqual(layer.TypingIndicators.FINISHED);
             });
@@ -878,7 +878,7 @@ describe("The Typing Indicator Classes", function() {
             });
 
             it("Should do nothing for a temp id", function() {
-                publisher.conversation = client.createConversation(["abc"]);
+                publisher.conversation = client.createConversation({participants: ["abc"]});
                 publisher._send(layer.TypingIndicators.STARTED);
                 expect(client.socketManager._socket.send).not.toHaveBeenCalled();
             });

@@ -20,7 +20,7 @@ describe("The Message class", function() {
             url: "https://doh.com"
         });
 
-        client.user = new layer.UserIdentity({
+        client.user = new layer.Identity({
           clientId: client.appId,
           userId: "999",
           id: "layer:///identities/999",
@@ -36,25 +36,25 @@ describe("The Message class", function() {
           isFullIdentity: true,
           sessionOwner: true
         });
-        userIdentity1 = new layer.UserIdentity({
+        userIdentity1 = new layer.Identity({
             clientId: client.appId,
             id: "layer:///identities/1",
             displayName: "1",
             userId: "1"
         });
-        userIdentity2 = new layer.UserIdentity({
+        userIdentity2 = new layer.Identity({
             clientId: client.appId,
             id: "layer:///identities/2",
             displayName: "2",
             userId: "2"
         });
-        userIdentity3 = new layer.UserIdentity({
+        userIdentity3 = new layer.Identity({
             clientId: client.appId,
             id: "layer:///identities/3",
             displayName: "3",
             userId: "3"
         });
-        userIdentity4 = new layer.UserIdentity({
+        userIdentity4 = new layer.Identity({
             clientId: client.appId,
             id: "layer:///identities/4",
             displayName: "4",
@@ -73,8 +73,9 @@ describe("The Message class", function() {
 
         conversation = layer.Conversation._createFromServer(responses.conversation2, client);
 
-        requests.reset();
         jasmine.clock().tick(1);
+        requests.reset();
+        client.syncManager.queue = [];
     });
     afterEach(function() {
         if (client) client.destroy();
@@ -742,7 +743,7 @@ describe("The Message class", function() {
             var oldValue = m.__recipientStatus;
 
             var newValue = JSON.parse(JSON.stringify(oldValue));
-            newValue[client.userId] = "read";
+            newValue[client.user.id] = "read";
 
             // Run
             m.recipientStatus = newValue;
@@ -769,7 +770,7 @@ describe("The Message class", function() {
             var oldValue = m.__recipientStatus;
 
             var newValue = JSON.parse(JSON.stringify(oldValue));
-            newValue[client.userId] = "delivered";
+            newValue[client.user.userId] = "delivered";
 
             // Run
             m.recipientStatus = newValue;
@@ -1248,7 +1249,7 @@ describe("The Message class", function() {
             m.send();
 
             // Posttest
-            expect(m.sender.userId).toEqual(client.userId);
+            expect(m.sender.userId).toEqual(client.user.userId);
         });
 
         it("Should trigger messages:sending", function() {
@@ -1892,7 +1893,7 @@ describe("The Message class", function() {
                 client: client
             });
             var data = JSON.parse(JSON.stringify(responses.message1));
-            expect(client.getIdentity(data.sender.user_id)).toEqual(jasmine.any(layer.UserIdentity));
+            expect(client.getIdentity(data.sender.user_id)).toEqual(jasmine.any(layer.Identity));
 
             m._populateFromServer(data);
 
@@ -1910,7 +1911,7 @@ describe("The Message class", function() {
             m._populateFromServer(data);
 
             // Posttest
-            expect(m.sender).toEqual(jasmine.any(layer.UserIdentity));
+            expect(m.sender).toEqual(jasmine.any(layer.Identity));
             expect(m.sender.userId).toEqual(data.sender.user_id);
         });
 
@@ -1919,12 +1920,13 @@ describe("The Message class", function() {
                 client: client
             });
             var data = JSON.parse(JSON.stringify(responses.message1));
-            data.sender = {name: "Fred"};
+            data.sender = {display_name: "Fred"};
 
             m._populateFromServer(data);
 
-            expect(m.sender.name).toEqual("Fred");
-            expect(m.sender).toEqual(jasmine.any(layer.ServiceIdentity));
+            expect(m.sender.displayName).toEqual("Fred");
+            expect(m.sender.userId).toEqual("");
+            expect(m.sender).toEqual(jasmine.any(layer.Identity));
         });
 
         it("Should call _setSynced", function() {
@@ -1982,9 +1984,9 @@ describe("The Message class", function() {
             // Run
             m.recipientStatus["layer:///identities/a"] = "delivered";
             m._handlePatchEvent({
-                a: "delivered"
+                "layer:///identities/a": "delivered"
             }, {
-                a: "sent"
+                "layer:///identities/a": "sent"
             }, ["recipient_status.layer:///identities/a"]);
 
             // Posttest
@@ -2228,7 +2230,7 @@ describe("The Message class", function() {
         it("Should send delivery receipt if not marked as delivered", function() {
             // Setup
             var data = JSON.parse(JSON.stringify(responses.message1));
-            data.recipient_status["999"] = "sent";
+            data.recipient_status["layer:///identities/999"] = "sent";
             var tmp = layer.Message.prototype._sendReceipt;
             spyOn(layer.Message.prototype, "_sendReceipt");
 
@@ -2275,7 +2277,7 @@ describe("The Message class", function() {
         it("Should not trigger a messages:notify event if message is from sender", function() {
             var data = JSON.parse(JSON.stringify(responses.message1));
             data.fromWebsocket = true;
-            data.sender.user_id = client.userId;
+            data.sender.user_id = client.user.userId;
             client.getMessage(data.id).destroy();
             spyOn(client, "_triggerAsync");
 

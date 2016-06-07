@@ -272,7 +272,7 @@ class Conversation extends Syncable {
     return {
       method: 'Conversation.create',
       data: {
-        participants: this.participants.map(identity => identity.userId),
+        participants: this.participants.map(identity => identity.id),
         distinct: this.distinct,
         metadata: isMetadataEmpty ? null : this.metadata,
         id: this.id,
@@ -524,8 +524,8 @@ class Conversation extends Syncable {
    * @method _applyParticipantChange
    * @private
    * @param  {Object} change
-   * @param  {layer.UserIdentity[]} change.add - Array of userids to add
-   * @param  {layer.UserIdentity[]} change.remove - Array of userids to remove
+   * @param  {layer.Identity[]} change.add - Array of userids to add
+   * @param  {layer.Identity[]} change.remove - Array of userids to remove
    */
   _applyParticipantChange(change) {
     const participants = [].concat(this.participants);
@@ -683,6 +683,7 @@ class Conversation extends Syncable {
         this.__updateMetadata(newValue, oldValue, paths);
       } else if (paths[0] === 'participants') {
         const client = this.getClient();
+        oldValue = oldValue.map(identity => client.getIdentity(identity.id));
         this.__updateParticipants(newValue.map(identityObj => client.getIdentity(identityObj.id)), oldValue);
       }
       this._disableEvents = events;
@@ -1107,7 +1108,7 @@ class Conversation extends Syncable {
    * @protected
    * @param  {Object} options
    * @param  {layer.Client} options.client
-   * @param  {string[]/layer.UserIdentity[]} options.participants - Array of userIds or layer.UserIdentity objects to create a conversation with.
+   * @param  {string[]/layer.Identity[]} options.participants - Array of userIds or layer.Identity objects to create a conversation with.
    * @param {boolean} [options.distinct=true] - Create a distinct conversation
    * @param {Object} [options.metadata={}] - Initial metadata for Conversation
    * @return {layer.Conversation}

@@ -121,6 +121,7 @@ const LayerError = require('./layer-error');
 const Constants = require('./const');
 const Util = require('./client-utils');
 const ClientRegistry = require('./client-registry');
+const Identity = require('./identity');
 
 class Message extends Syncable {
   /**
@@ -365,14 +366,16 @@ class Message extends Syncable {
   _getReceiptStatus(status, id) {
     let readCount = 0,
       deliveredCount = 0;
-    Object.keys(status).filter(participant => participant.id !== id).forEach(participant => {
-      if (status[participant.id] === Constants.RECEIPT_STATE.READ) {
-        readCount++;
-        deliveredCount++;
-      } else if (status[participant.id] === Constants.RECEIPT_STATE.DELIVERED) {
-        deliveredCount++;
-      }
-    });
+    Object.keys(status)
+      .filter(participant => participant !== id)
+      .forEach(participant => {
+        if (status[participant] === Constants.RECEIPT_STATE.READ) {
+          readCount++;
+          deliveredCount++;
+        } else if (status[participant] === Constants.RECEIPT_STATE.DELIVERED) {
+          deliveredCount++;
+        }
+      });
 
     return {
       readCount,
@@ -753,8 +756,6 @@ class Message extends Syncable {
   _populateFromServer(message) {
     this._inPopulateFromServer = true;
     const client = this.getClient();
-    let senderId,
-      sender;
 
     this.id = message.id;
     this.url = message.url;
@@ -786,15 +787,11 @@ class Message extends Syncable {
     this.sentAt = new Date(message.sent_at);
     this.receivedAt = message.received_at ? new Date(message.received_at) : undefined;
 
-    if (message.sender.user_id) {
-      senderId = 'layer:///identities/' + message.sender.user_id;
-    } else {
-      senderId = 'layer:///serviceidentities/' + message.sender.name;
-    }
-    sender = client.getIdentity(senderId);
+    const senderId = 'layer:///identities/' + encodeURIComponent(message.sender.user_id || 'LYR_INTERNAL_' + message.sender.display_name);
+    let sender = client.getIdentity(senderId);
 
     if (!sender) {
-      message.sender.id = senderId;
+      if (!message.sender.id) message.sender.id = senderId;
       sender = client._createObject(message.sender);
     }
     this.sender = sender;

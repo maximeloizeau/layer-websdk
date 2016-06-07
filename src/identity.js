@@ -1,6 +1,5 @@
-// TODO: Integrate/Remove User object
 /**
- * The Identity class represents an Identity of a participant in a Conversation or sender of a Message in a Conversation.
+ * The Identity class represents an Identity of a user of your application.
  *
  * Identities are created by the System, never directly by apps.
  *
@@ -12,18 +11,16 @@
  * How Identities fit into the system:
  *
  * 1. As part of initialization, load the authenticated user’s full Identity record so that the Client knows more than just the `userId` of its user.
- *    client.user = <UserIdentity>
+ *    client.user = <Identity>
  * 2. Any time we get a Basic Identity via `message.sender` or Conversations, see if we have an Identity for that sender,
  *    and if not create one using the Basic Identity.  There should never be a duplicate Identity.
  * 3. Websocket CHANGE events will update Identity objects, as well as add new Full Identities, and downgrade Full Identities to Basic Identities.
- * 4. There are two types of Identities: UserIdentity and ServiceIdentity.  Both will have `displayName`;
- *    UserIdentity will have `first_name`, `last_name`, etc…; ServiceIdentity will have `name` (Admin, Moderator, etc…).
- * 5. The Query API supports querying and paging through Identities
- * 6. The Query API loads Full Identities; these results will update the client._identitiesHash;
+ * 4. The Query API supports querying and paging through Identities
+ * 5. The Query API loads Full Identities; these results will update the client._identitiesHash;
  *    upgrading Basic Identities if they match, and adding new Identities if they don't.
- * 7. DbManager will persist only UserIdentities, and only those that are Full Identities.  Basic Identities will be written
+ * 6. DbManager will persist only UserIdentities, and only those that are Full Identities.  Basic Identities will be written
  *    to the Messages and Conversations tables anyways as part of those larger objects.
- * 8. API For explicit follows/unfollows
+ * 7. API For explicit follows/unfollows
  */
 
 const Syncable = require('./syncable');
@@ -51,6 +48,9 @@ class Identity extends Syncable {
       this._populateFromServer(options.fromServer);
     }
 
+    if (!this.url && this.userId) this.url = `${this.getClient().url}/identities/${this.userId}`;
+    this.getClient()._addIdentity(this);
+
     this.isInitializing = false;
   }
 
@@ -68,58 +68,6 @@ class Identity extends Syncable {
   trigger(evtName, args) {
     this._clearObject();
     super.trigger(evtName, args);
-  }
-}
-
-/**
- * Display name for the User or System Identity.
- * @type {string}
- */
-Identity.prototype.displayName = '';
-
-/**
- * The Identity matching `layer.Client.user` will have this be true.
- *
- * All other Identities will have this as false.
- * @type {boolean}
- */
-Identity.prototype.sessionOwner = false;
-
-/**
- * ID of the Client this Identity is associated with.
- * @type {string}
- */
-Identity.prototype.clientId = '';
-
-/**
- * Is this a Full Identity or Basic Identity?
- *
- * Note that Service Identities are always considered to be Basic.
- * @type {boolean}
- */
-Identity.prototype.isFullIdentity = false;
-
-Identity.inObjectIgnore = Root.inObjectIgnore;
-
-Identity.bubbleEventParent = 'getClient';
-
-Root.initClass.apply(Identity, [Identity, 'Identity']);
-
-/**
- * The most common type of Identity is the UserIdentity, representing
- * a user of your application, able to be a full participant of your Conversations,
- * and able, with a SessionToken to create new Conversations with other Users.
- *
- * These are only created by the WebSDK for you, never created by you directly.
- *
- * @class layer.UserIdentity
- * @extends layer.Identity
- */
-class UserIdentity extends Identity {
-  constructor(options) {
-    super(options);
-    if (!this.url) this.url = `${this.getClient().url}/identities/${this.userId}`;
-    if (!this.userId) this.userId = decodeURIComponent(this.id.substring(20));
   }
 
   /**
@@ -140,7 +88,7 @@ class UserIdentity extends Identity {
 
     this._setSynced();
 
-    this.userId = identity.user_id;
+    this.userId = identity.user_id || '';
 
     this._updateValue('avatarUrl', identity.avatar_url);
     this._updateValue('displayName', identity.display_name);
@@ -150,6 +98,7 @@ class UserIdentity extends Identity {
     // Handle Full Identity vs Basic Identity
     if (isFullIdentity) {
       this.url = identity.url;
+      this.type = identity.type;
 
       this._updateValue('emailAddress', identity.email_address);
       this._updateValue('lastName', identity.last_name);
@@ -164,7 +113,6 @@ class UserIdentity extends Identity {
       this.url = this.getClient().url + this.id.substring(8);
     }
 
-    client._addIdentity(this);
     this._disableEvents = false;
 
     // See if we have the Full Identity Object in database
@@ -184,6 +132,7 @@ class UserIdentity extends Identity {
    * @param {Mixed} value - Property value
    */
   _updateValue(key, value) {
+    if (value === null || value === undefined) value = '';
     if (this[key] !== value) {
       if (!this.isInitializing) {
         this._triggerAsync('identities:change', {
@@ -255,7 +204,9 @@ class UserIdentity extends Identity {
   // Turn a Full Identity into a Basic Identity and delete the Full Identity from the database
   _handleWebsocketDelete(data) {
     this.getClient().dbManager.deleteObjects('identities', [this]);
-    ['firstName', 'lastName', 'emailAddress', 'phoneNumber', 'metadata', 'publicKey', 'isFullIdentity'].forEach(key => delete this[key]);
+    [
+      'firstName', 'lastName', 'emailAddress', 'phoneNumber', 'metadata', 'publicKey', 'isFullIdentity', 'type',
+    ].forEach(key => delete this[key]);
     this._triggerAsync('identities:unfollow');
   }
 
@@ -266,10 +217,10 @@ class UserIdentity extends Identity {
    * @static
    * @param {Object} identity - Server Identity Object
    * @param {layer.Client} client
-   * @returns {layer.UserIdentity}
+   * @returns {layer.Identity}
    */
   static _createFromServer(identity, client) {
-    return new UserIdentity({
+    return new Identity({
       client,
       fromServer: identity,
       _fromDB: identity._fromDB,
@@ -278,16 +229,46 @@ class UserIdentity extends Identity {
 }
 
 /**
+ * Display name for the User or System Identity.
+ * @type {string}
+ */
+Identity.prototype.displayName = '';
+
+/**
+ * The Identity matching `layer.Client.user` will have this be true.
+ *
+ * All other Identities will have this as false.
+ * @type {boolean}
+ */
+Identity.prototype.sessionOwner = false;
+
+/**
+ * ID of the Client this Identity is associated with.
+ * @type {string}
+ */
+Identity.prototype.clientId = '';
+
+/**
+ * Is this a Full Identity or Basic Identity?
+ *
+ * Note that Service Identities are always considered to be Basic.
+ * @type {boolean}
+ */
+Identity.prototype.isFullIdentity = false;
+
+
+
+/**
  * Unique ID for this User.
  * @type {string}
  */
-UserIdentity.prototype.userId = '';
+Identity.prototype.userId = '';
 
 /**
  * Optional URL for the user's icon.
  * @type {string}
  */
-UserIdentity.prototype.avatarUrl = '';
+Identity.prototype.avatarUrl = '';
 
 /**
  * Optional first name for this user.
@@ -296,7 +277,7 @@ UserIdentity.prototype.avatarUrl = '';
  *
  * @type {string}
  */
-UserIdentity.prototype.firstName = '';
+Identity.prototype.firstName = '';
 
 /**
  * Optional last name for this user.
@@ -305,7 +286,7 @@ UserIdentity.prototype.firstName = '';
  *
  * @type {string}
  */
-UserIdentity.prototype.lastName = '';
+Identity.prototype.lastName = '';
 
 /**
  * Optional email address for this user.
@@ -314,7 +295,7 @@ UserIdentity.prototype.lastName = '';
  *
  * @type {string}
  */
-UserIdentity.prototype.emailAddress = '';
+Identity.prototype.emailAddress = '';
 
 /**
  * Optional phone number for this user.
@@ -323,7 +304,7 @@ UserIdentity.prototype.emailAddress = '';
  *
  * @type {string}
  */
-UserIdentity.prototype.phoneNumber = '';
+Identity.prototype.phoneNumber = '';
 
 /**
  * Optional metadata for this user.
@@ -332,7 +313,7 @@ UserIdentity.prototype.phoneNumber = '';
  *
  * @type {object}
  */
-UserIdentity.prototype.metadata = null;
+Identity.prototype.metadata = null;
 
 /**
  * Optional public key for encrypting message text for this user.
@@ -341,99 +322,58 @@ UserIdentity.prototype.metadata = null;
  *
  * @type {string}
  */
-UserIdentity.prototype.publicKey = '';
+Identity.prototype.publicKey = '';
 
-UserIdentity.inObjectIgnore = Identity.inObjectIgnore;
+/**
+ * @static
+ * @type {string} The Identity represents a user.  Value used in the layer.Identity.type field.
+ */
+Identity.UserType = 'user';
 
-UserIdentity.bubbleEventParent = 'getClient';
+/**
+ * @static
+ * @type {string} The Identity represents a bot.  Value used in the layer.Identity.type field.
+ */
+Identity.BotType = 'bot';
 
-UserIdentity._supportedEvents = [
+/**
+ * What type of Identity does this represent?
+ *
+ * * A bot? Use layer.Identity.BotType
+ * * A User? Use layer.Identity.UserType
+ * @type {string}
+ */
+Identity.prototype.type = Identity.UserType;
+
+/**
+ * Is this Identity a bot?
+ *
+ * If the layer.Identity.type field is equal to layer.Identity.BotType then this will return true.
+ * @type {boolean}
+ */
+Object.defineProperty(Identity.prototype, 'isBot', {
+  enumerable: true,
+  get: function get() {
+    return this.type !== Identity.BotType;
+  },
+});
+
+Identity.inObjectIgnore = Root.inObjectIgnore;
+
+Identity.bubbleEventParent = 'getClient';
+
+Identity._supportedEvents = [
   'identities:change',
   'identities:loaded',
   'identities:loaded-error',
   'identities:unfollow',
 ];
 
-UserIdentity.eventPrefix = 'identities';
-UserIdentity.prefixUUID = 'layer:///identities/';
-UserIdentity.enableOpsIfNew = true;
+Identity.eventPrefix = 'identities';
+Identity.prefixUUID = 'layer:///identities/';
+Identity.enableOpsIfNew = true;
 
-Root.initClass.apply(UserIdentity, [UserIdentity, 'UserIdentity']);
-Syncable.subclasses.push(UserIdentity);
+Root.initClass.apply(Identity, [Identity, 'Identity']);
+Syncable.subclasses.push(Identity);
 
-/**
- * A less common type of Identity is the ServiceIdentity.
- * This represents a Service Message such as is posted by your service,
- * using some custom name, but sent, not as a Participant of a Conversation, but rather as
- * a System Message.  Bots are common examples of this.  An Administrator might post an announcement
- * this way.  A service posting new news and events might simply post as `News Bot`, which is not
- * a participant, just a named service.
- *
- * @class layer.ServiceIdentity
- * @extends layer.Identity
- */
-class ServiceIdentity extends Identity {
-  /**
-   * Populates this instance using server-data.
-   *
-   * Side effects add this to the Client.
-   *
-   * @method _populateFromServer
-   * @private
-   * @param  {Object} identity - Server representation of the identity
-   */
-  _populateFromServer(identity) {
-    const client = this.getClient();
-
-    // Disable events if creating a new Identity
-    // We still want property change events for anything that DOES change
-    this._disableEvents = (this.syncState === Constants.SYNC_STATE.NEW);
-
-    this._setSynced();
-
-    this.id = identity.id;
-    this.name = identity.name;
-    this.displayName = identity.name;
-
-    client._addIdentity(this);
-    this._disableEvents = false;
-  }
-
-  /**
-   * Create a layer.ServiceIdentity from the Server's Identity Object.
-   *
-   * Input Identity Object must have a `name` field.
-   */
-  static _createFromServer(identity, client) {
-    return new ServiceIdentity({
-      client,
-      fromServer: identity,
-      _fromDB: identity._fromDB,
-    });
-  }
-}
-
-/**
- * Name of the service sending Messages.
- *
- * @type {string}
- */
-ServiceIdentity.prototype.name = '';
-
-ServiceIdentity._supportedEvents = [
-  'identities:loaded',
-  'identities:loaded-error',
-];
-
-ServiceIdentity.eventPrefix = 'serviceidentities';
-
-ServiceIdentity.prefixUUID = 'layer:///serviceidentities/';
-
-Root.initClass.apply(ServiceIdentity, [ServiceIdentity, 'ServiceIdentity']);
-Syncable.subclasses.push(ServiceIdentity);
-
-module.exports = {
-  Identity,
-  UserIdentity,
-  ServiceIdentity,
-};
+module.exports = Identity;
