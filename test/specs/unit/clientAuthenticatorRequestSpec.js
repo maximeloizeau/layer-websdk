@@ -22,7 +22,7 @@ describe("The Client Authenticator Requests", function() {
             reset: true,
             url: "https://duh.com"
         });
-        client.user = new layer.UserIdentity({
+        client.user = new layer.Identity({
           clientId: client.appId,
           userId: userId,
           id: "layer:///identities/" + userId,

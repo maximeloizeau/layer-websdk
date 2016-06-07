@@ -36,9 +36,9 @@ var messageTemplate = {
     },
     "is_unread": true,
     "recipient_status": {
-        "777": "sent",
-        "999": "read",
-        "111": "delivered"
+        "layer:///identities/777": "sent",
+        "layer:///identities/999": "read",
+        "layer:///identities/111": "delivered"
     }
 };
 var sampleMessage1 = JSON.parse(JSON.stringify(messageTemplate));
@@ -51,8 +51,8 @@ sampleMessage3.parts.forEach(function(part) {part.id = part.id.replace(/\/parts/
 
 sampleMessage2.parts[0].body += "2";
 sampleMessage3.parts[0].body += "3";
-sampleMessage2.recipient_status["777"] = "delivered";
-sampleMessage3.recipient_status["777"] = "read";
+sampleMessage2.recipient_status["layer:///identities/777"] = "delivered";
+sampleMessage3.recipient_status["layer:///identities/777"] = "read";
 responses = {
     error1: {
         "message": "Body cannot be blank.",
@@ -114,7 +114,10 @@ responses = {
       ],
       "sent_at": "2014-09-09T04:44:47+00:00",
       "sender": {
-          "display_name": "Hey ho"
+        "user_id": "admin",
+        "display_name": "Lord Master the Admin",
+        "id": "layer:///identities/admin",
+        "url": "https://huh.com/identities/admin"
       },
       "is_unread": true,
       "recipient_status": {
@@ -125,12 +128,9 @@ responses = {
         id: "layer:///identities/frodo-the-dodo",
         user_id: "frodo-the-dodo",
         display_name: "Frodo The Dodo",
-        firstName: "Frodo",
-        lastName: "Dodo",
+        first_name: "Frodo",
+        last_name: "Dodo",
         metadata: {}
-    },
-    serviceidentity: {
-        display_name: "I am Zod"
     }
 };
 

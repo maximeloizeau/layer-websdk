@@ -220,7 +220,7 @@ class DbManager extends Root {
       const item = {
         id: conversation.id,
         url: conversation.url,
-        participants: conversation.participants.map(participant => participant.toObject()),
+        participants: this._getIdentityData(conversation.participants, true),
         distinct: conversation.distinct,
         created_at: getDate(conversation.createdAt),
         metadata: conversation.metadata,
@@ -256,11 +256,12 @@ class DbManager extends Root {
    * @method _getIdentityData
    * @private
    * @param {layer.Identity[]} identities
+   * @param {boolean} writeBasicIdentity - Forces output as a Basic Identity
    * @return {Object[]} identities
    */
-  _getIdentityData(identities) {
+  _getIdentityData(identities, writeBasicIdentity) {
     return identities.filter((identity) => {
-      if (identity.isDestroyed || !identity.isFullIdentity) return false;
+      if (identity.isDestroyed || !identity.isFullIdentity && !writeBasicIdentity) return false;
 
       if (identity._fromDB) {
         identity._fromDB = false;
@@ -271,21 +272,31 @@ class DbManager extends Root {
         return true;
       }
     }).map((identity) => {
-      const item = {
-        id: identity.id,
-        url: identity.url,
-        user_id: identity.userId,
-        first_name: identity.firstName,
-        last_name: identity.lastName,
-        display_name: identity.displayName,
-        avatar_url: identity.avatarUrl,
-        metadata: identity.metadata,
-        public_key: identity.publicKey,
-        phone_number: identity.phoneNumber,
-        email_address: identity.emailAddress,
-        sync_state: identity.syncState,
-      };
-      return item;
+      if (identity.isFullIdentity && !writeBasicIdentity) {
+        return {
+          id: identity.id,
+          url: identity.url,
+          user_id: identity.userId,
+          first_name: identity.firstName,
+          last_name: identity.lastName,
+          display_name: identity.displayName,
+          avatar_url: identity.avatarUrl,
+          metadata: identity.metadata,
+          public_key: identity.publicKey,
+          phone_number: identity.phoneNumber,
+          email_address: identity.emailAddress,
+          sync_state: identity.syncState,
+          type: identity.type,
+        };
+      } else {
+        return {
+          id: identity.id,
+          url: identity.url,
+          user_id: identity.userId,
+          display_name: identity.displayName,
+          avatar_url: identity.avatarUrl,
+        };
+      }
     });
   }
 
@@ -344,12 +355,7 @@ class DbManager extends Root {
         },
       })),
       position: message.position,
-      sender: {
-        name: message.sender.name || '',
-        user_id: message.sender.userId || '',
-        display_name: message.sender.displayName || '',
-        avatar_url: message.sender.avatarUrl || '',
-      },
+      sender: this._getIdentityData([message.sender], true)[0],
       recipient_status: message.recipientStatus,
       sent_at: getDate(message.sentAt),
       received_at: getDate(message.receivedAt),

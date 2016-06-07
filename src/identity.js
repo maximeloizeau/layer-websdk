@@ -55,7 +55,11 @@ class Identity extends Syncable {
       this._populateFromServer(options.fromServer);
     }
 
-    if (!this.url && this.id) this.url = `${this.getClient().url}/${this.id.substring(9)}`;
+    if (!this.url && this.id) {
+      this.url = `${this.getClient().url}/${this.id.substring(9)}`;
+    } else if (!this.url) {
+      this.url = '';
+    }
     this.getClient()._addIdentity(this);
 
     this.isInitializing = false;

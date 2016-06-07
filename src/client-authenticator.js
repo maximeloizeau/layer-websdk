@@ -247,11 +247,11 @@ class ClientAuthenticator extends Root {
     }
 
     if (!this.user) {
-      this.user = new UserIdentity({
+      this.user = new Identity({
         userId,
         sessionOwner: true,
         clientId: this.appId,
-        id: userId ? UserIdentity.prefixUUID + encodeURIComponent(userId) : '',
+        id: userId ? Identity.prefixUUID + encodeURIComponent(userId) : '',
       });
     }
 
@@ -299,11 +299,11 @@ class ClientAuthenticator extends Root {
     this.onlineManager.start();
 
     if (!this.user) {
-      this.user = new UserIdentity({
+      this.user = new Identity({
         userId,
         sessionOwner: true,
         clientId: this.appId,
-        id: UserIdentity.prefixUUID + encodeURIComponent(userId),
+        id: Identity.prefixUUID + encodeURIComponent(userId),
       });
     }
 

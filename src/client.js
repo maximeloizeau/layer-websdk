@@ -85,7 +85,7 @@ const LayerError = require('./layer-error');
 const Syncable = require('./syncable');
 const Message = require('./message');
 const Announcement = require('./announcement');
-const { Identity, UserIdentity, ServiceIdentity } = require('./identity');
+const Identity = require('./identity');
 const TypingIndicatorListener = require('./typing-indicators/typing-indicator-listener');
 const Util = require('./client-utils');
 const Root = require('./root');
@@ -107,7 +107,6 @@ class Client extends ClientAuth {
     this._messagesHash = {};
     this._queriesHash = {};
     this._identitiesHash = {};
-    this._serviceIdentitiesHash = {};
     this._scheduleCheckAndPurgeCacheItems = [];
 
     this._initComponents();
@@ -127,6 +126,30 @@ class Client extends ClientAuth {
     Object.keys(Client.plugins).forEach(propertyName => {
       this[propertyName] = new Client.plugins[propertyName](this);
     });
+  }
+
+
+  /*
+   * @method _clientReady
+   * @private
+   * @fires ready
+   *
+   * WARNING: There is not at this time a recovery or reasonable way to bypass loading this user's
+   * Identity.  It will continue to retry until a value is found and THEN the client will complete authentication.
+   */
+  _clientReady() {
+    if (!this.user) {
+      const user = Identity.load('layer:///identities/' + encodeURIComponent(this.userId), this);
+      user.sessionOwner = true;
+      user.on('identities:loaded', () => {
+        this.user = user;
+        this._clientReady();
+      });
+      user.on('identities:loaded-error', () => setTimeout(() => this._clientReady(), 2000));
+      this.user = user;
+    } else if (this.user.isSynced()) {
+      super._clientReady();
+    }
   }
 
   /**
@@ -167,14 +190,6 @@ class Client extends ClientAuth {
       }
     });
     this._identitiesHash = null;
-
-    Object.keys(this._serviceIdentitiesHash).forEach((id) => {
-      const identity = this._serviceIdentitiesHash[id];
-      if (identity && !identity.isDestroyed) {
-        identity.destroy();
-      }
-    });
-    this._serviceIdentitiesHash = null;
 
     if (this.socketManager) this.socketManager.close();
   }
@@ -451,8 +466,7 @@ class Client extends ClientAuth {
   /**
    * Retrieve a identity by Identifier.
    *
-   *      var i1 = client.getIdentity('layer:///identities/user_id');
-   *      var i2 = client.getIdentity('layer:///serviceidentities/service_name');
+   *      var identity = client.getIdentity('layer:///identities/user_id');
    *
    * If there is not an Identity with that id, it will return null.
    *
@@ -460,7 +474,7 @@ class Client extends ClientAuth {
    * This is only supported for User Identities, not Service Identities.
    *
    * If loading from the server, the method will return
-   * a layer.UserIdentity instance that has no data; the identities:loaded/identities:loaded-error events
+   * a layer.Identity instance that has no data; the identities:loaded/identities:loaded-error events
    * will let you know when the identity has finished/failed loading from the server.
    *
    *      var user = client.getIdentity('layer:///identities/123', true)
@@ -473,30 +487,26 @@ class Client extends ClientAuth {
    *
    * @method getIdentity
    * @param  {string} id - Accepts full Layer ID (layer:///identities/frodo-the-dodo) or just the UserID (frodo-the-dodo).
-   *                       If its just a UserID, its presumed to be a UserIdentity not a ServiceIdentity.
    * @param  {boolean} [canLoad=false] - Pass true to allow loading an identity from
    *                                    the server if not found
    * @return {layer.Identity}
    */
   getIdentity(id, canLoad) {
+    let userId;
     if (typeof id !== 'string') throw new Error(LayerError.dictionary.idParamRequired);
-    if (!UserIdentity.isValidId(id) && !ServiceIdentity.isValidId(id)) {
-      id = UserIdentity.prefixUUID + encodeURIComponent(id);
+    if (!Identity.isValidId(id)) {
+      userId = id;
+      id = Identity.prefixUUID + encodeURIComponent(id);
     }
 
-    switch (Util.typeFromID(id)) {
-      case 'identities':
-        if (this._identitiesHash[id]) {
-          return this._identitiesHash[id];
-        } else if (canLoad) {
-          return Identity.load(id, this);
-        }
-        break;
-      case 'serviceidentities':
-        if (this._serviceIdentitiesHash[id]) {
-          return this._serviceIdentitiesHash[id];
-        }
+    if (this._identitiesHash[id]) {
+      return this._identitiesHash[id];
+    } else if (canLoad) {
+      const identity = Identity.load(id, this);
+      if (userId) identity.userId = userId;
+      return identity;
     }
+
     return null;
   }
 
@@ -527,20 +537,10 @@ class Client extends ClientAuth {
    */
   _addIdentity(identity) {
     const id = identity.id;
-    switch (Util.typeFromID(id)) {
-      case 'identities':
-        if (!this._identitiesHash[id]) {
-          // Register the Identity
-          this._identitiesHash[id] = identity;
-          this._triggerAsync('identities:add', { identities: [identity] });
-        }
-        break;
-      case 'serviceidentities':
-        if (!this._serviceIdentitiesHash[id]) {
-          // Register the Identity
-          this._serviceIdentitiesHash[id] = identity;
-        }
-        break;
+    if (id && !this._identitiesHash[id]) {
+      // Register the Identity
+      this._identitiesHash[id] = identity;
+      this._triggerAsync('identities:add', { identities: [identity] });
     }
     return this;
   }
@@ -563,18 +563,9 @@ class Client extends ClientAuth {
     identity.off(null, null, this);
 
     const id = identity.id;
-    switch (Util.typeFromID(id)) {
-      case 'identities':
-        if (this._identitiesHash[id]) {
-          delete this._identitiesHash[id];
-          this._triggerAsync('identities:remove', { identities: [identity] });
-        }
-        break;
-      case 'serviceidentities':
-        if (this._serviceIdentitiesHash[id]) {
-          delete this._serviceIdentitiesHash[id];
-        }
-        break;
+    if (this._identitiesHash[id]) {
+      delete this._identitiesHash[id];
+      this._triggerAsync('identities:remove', { identities: [identity] });
     }
     return this;
   }
@@ -584,15 +575,15 @@ class Client extends ClientAuth {
    *
    * @method followIdentity
    * @param  {string} id - Accepts full Layer ID (layer:///identities/frodo-the-dodo) or just the UserID (frodo-the-dodo).
-   * @returns {layer.UserIdentity}
+   * @returns {layer.Identity}
    */
   followIdentity(id) {
-    if (!UserIdentity.isValidId(id)) {
-      id = UserIdentity.prefixUUID + encodeURIComponent(id);
+    if (!Identity.isValidId(id)) {
+      id = Identity.prefixUUID + encodeURIComponent(id);
     }
     let identity = this.getIdentity(id);
     if (!identity) {
-      identity = new UserIdentity({
+      identity = new Identity({
         id,
         clientId: this.appId,
         userId: id.substring(20),
@@ -607,15 +598,15 @@ class Client extends ClientAuth {
    *
    * @method unfollowIdentity
    * @param  {string} id - Accepts full Layer ID (layer:///identities/frodo-the-dodo) or just the UserID (frodo-the-dodo).
-   * @returns {layer.UserIdentity}
+   * @returns {layer.Identity}
    */
   unfollowIdentity(id) {
-    if (!UserIdentity.isValidId(id)) {
-      id = UserIdentity.prefixUUID + encodeURIComponent(id);
+    if (!Identity.isValidId(id)) {
+      id = Identity.prefixUUID + encodeURIComponent(id);
     }
     let identity = this.getIdentity(id);
     if (!identity) {
-      identity = new UserIdentity({
+      identity = new Identity({
         id,
         clientId: this.appId,
         userId: id.substring(20),
@@ -649,7 +640,6 @@ class Client extends ClientAuth {
       case 'queries':
         return this.getQuery(id);
       case 'identities':
-      case 'serviceidentities':
         return this.getIdentity(id);
     }
     return null;
@@ -678,9 +668,7 @@ class Client extends ClientAuth {
         case 'conversations':
           return Conversation._createFromServer(obj, this);
         case 'identities':
-          return UserIdentity._createFromServer(obj, this);
-        case 'serviceidentities':
-          return ServiceIdentity._createFromServer(obj, this);
+          return Identity._createFromServer(obj, this);
       }
     }
   }
@@ -800,7 +788,6 @@ class Client extends ClientAuth {
     this._messagesHash = {};
     this._queriesHash = {};
     this._identitiesHash = {};
-    this._serviceIdentitiesHash = {};
     return super._resetSession();
   }
 
@@ -860,7 +847,7 @@ class Client extends ClientAuth {
    *
    * @method createConversation
    * @param  {Object} options
-   * @param {string[]/layer.UserIdentity[]} participants - Array of UserIDs or UserIdentities
+   * @param {string[]/layer.Identity[]} participants - Array of UserIDs or UserIdentities
    * @param {Boolean} [options.distinct=true] Is this a distinct Converation?
    * @param {Object} [options.metadata={}] Metadata for your Conversation
    * @return {layer.Conversation}
@@ -1213,7 +1200,6 @@ Client.prototype._scheduleCheckAndPurgeCacheItems = null;
  */
 Client.prototype._scheduleCheckAndPurgeCacheAt = 0;
 
-
 /**
  * Any Conversation or Message that is part of a Query's results are kept in memory for as long as it
  * remains in that Query.  However, when a websocket event delivers new Messages and Conversations that
@@ -1558,8 +1544,8 @@ Client._supportedEvents = [
   /**
    * Identities have been added to the Client.
    *
-   * This event is triggered whenever a new layer.UserIdentity (Full identity or not)
-   * has been received by the Client. layer.ServiceIdentity does not trigger this event.
+   * This event is triggered whenever a new layer.Identity (Full identity or not)
+   * has been received by the Client.
    *
           client.on('identities:add', function(evt) {
               evt.identities.forEach(function(identity) {
@@ -1569,7 +1555,7 @@ Client._supportedEvents = [
    *
    * @event
    * @param {layer.LayerEvent} evt
-   * @param {layer.UserIdentity[]} evt.identities
+   * @param {layer.Identity[]} evt.identities
    */
   'identities:add',
 
@@ -1586,7 +1572,7 @@ Client._supportedEvents = [
    *
    * @event
    * @param {layer.LayerEvent} evt
-   * @param {layer.UserIdentity[]} evt.identities
+   * @param {layer.Identity[]} evt.identities
    */
   'identities:remove',
 
@@ -1598,7 +1584,7 @@ Client._supportedEvents = [
    * but we do downgrade them from Full Identity to Basic Identity.
    * @event
    * @param {layer.LayerEvent} evt
-   * @param {layer.UserIdentity} evt.target
+   * @param {layer.Identity} evt.target
    */
   'identities:unfollow',
 

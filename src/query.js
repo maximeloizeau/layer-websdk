@@ -561,7 +561,7 @@ class Query extends Root {
     this._firingRequest = '';
     if (results.success) {
       this._appendResults(results, false);
-      this.totalSize = results.xhr.getResponseHeader('Layer-Count');
+      this.totalSize = Number(results.xhr.getResponseHeader('Layer-Count'));
     } else {
       this.trigger('error', { error: results.data });
     }
