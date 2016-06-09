@@ -59,6 +59,7 @@ module.exports = {
     SESSIONDATA: 'layer-session-data-',
   },
   ACCEPT: 'application/vnd.layer+json; version=1.0',
+  WEBSOCKET_PROTOCOL: 'layer-1.0',
 
   /**
    * Log levels
