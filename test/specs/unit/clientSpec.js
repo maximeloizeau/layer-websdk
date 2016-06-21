@@ -854,6 +854,28 @@ describe("The Client class", function() {
             });
         });
 
+        describe("The _fixIdentities() method", function() {
+            it("Should return identities by userId", function() {
+               expect(client._fixIdentities([userIdentity2.userId])).toEqual([userIdentity2]);
+            });
+
+            it("Should return identities by Identity ID", function() {
+               expect(client._fixIdentities([userIdentity2.id])).toEqual([userIdentity2]);
+            });
+
+            it("Should return identities by identity instance", function() {
+               expect(client._fixIdentities([userIdentity2])).toEqual([userIdentity2]);
+            });
+
+            it("Should return identities by identity object", function() {
+               expect(client._fixIdentities([userIdentity2.toObject()])).toEqual([userIdentity2]);
+            });
+
+            it("Should return identities by server object", function() {
+               expect(client._fixIdentities([{user_id: userIdentity2.userId, id: userIdentity2.id, display_name: userIdentity2.displayName}])).toEqual([userIdentity2]);
+            });
+        });
+
         describe("The followIdentity() method", function() {
             it("Should call follow() on an existing Identity", function() {
                 client._identitiesHash[userIdentity.id] = userIdentity;

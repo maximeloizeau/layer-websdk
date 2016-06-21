@@ -151,7 +151,8 @@ describe("The Query Class", function() {
         // triggers _handleConversationEvents in Query
         it("Should setup change event handlers", function() {
             var query = new layer.Query({
-                client: client
+                client: client,
+                model: layer.Query.Conversation
             });
             spyOn(query, "_handleConversationEvents");
 
