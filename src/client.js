@@ -509,13 +509,26 @@ class Client extends ClientAuth {
     return null;
   }
 
+  /**
+   * Takes an array of Identity instances, User IDs, Identity IDs, Identity objects,
+   * or Server formatted Identity Objects and returns an array of Identity instances.
+   *
+   * @method _fixIdentities
+   * @private
+   * @param {Mixed[]} identities - Something that tells us what Identity to return
+   * @return {layer.Identity[]}
+   */
   _fixIdentities(identities) {
     return identities.map((identity) => {
       if (identity instanceof Identity) return identity;
       if (typeof identity === 'string') {
         return this.getIdentity(identity, true);
       } else if (identity && typeof identity === 'object') {
-        return this._createObject(identity);
+        if ('userId' in identity) {
+          return this.getIdentity(identity.id || identity.userId);
+        } else if ('user_id' in identity) {
+          return this._createObject(identity);
+        }
       }
     });
   }

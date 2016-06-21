@@ -502,7 +502,7 @@ class ClientAuthenticator extends Root {
 
   /**
    * Deletes your sessionToken from the server, and removes all user data from the Client.
-   * Call `client.login()` to restart the authentication process.
+   * Call `client.connect()` to restart the authentication process.
    *
    * @method logout
    * @return {layer.ClientAuthenticator} this

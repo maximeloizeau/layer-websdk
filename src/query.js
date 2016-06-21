@@ -1360,10 +1360,12 @@ Query.prototype.data = null;
  * Model is one of
  * * layer.Query.Conversation
  * * layer.Query.Message
+ * * layer.Query.Announcement
+ * * layer.Query.Identity
  *
  * @type {String}
  */
-Query.prototype.model = CONVERSATION;
+Query.prototype.model = '';
 
 /**
  * What type of results to request of the server.

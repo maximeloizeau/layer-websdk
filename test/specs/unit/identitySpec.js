@@ -335,7 +335,7 @@ describe("The Identity Class", function() {
           basicIdentity.follow();
           expect(basicIdentity._xhr).toHaveBeenCalledWith({
             method: "PUT",
-            url: client.url + '/following/' + basicIdentity.userId,
+            url: client.url + '/following/users/' + basicIdentity.userId,
             syncable: {}
           }, jasmine.any(Function));
         });
@@ -356,7 +356,7 @@ describe("The Identity Class", function() {
           basicIdentity.unfollow();
           expect(basicIdentity._xhr).toHaveBeenCalledWith({
             method: "DELETE",
-            url: client.url + '/following/' + basicIdentity.userId,
+            url: client.url + '/following/users/' + basicIdentity.userId,
             syncable: {}
           });
         });
