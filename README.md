@@ -4,9 +4,11 @@
 
 The Layer Web SDK is a JavaScript library for adding chat services to your web application. For detailed documentation, tutorials and guides please visit our [Web SDK documentation](https://developer.layer.com/docs/websdk).
 
-## Public Beta Disclaimer
+## About the `v1.1.0` Beta Release
 
-This **public beta is NOT production ready**; while we will not stop you from using it in production, your expectations of polish and support will need to account for this. There are known limitations and known concerns with the Layer Web SDK.
+This **public beta is NOT production ready**; while we will not stop you from using it in production, your expectations of polish and support will need to account for this.
+
+See the [API Reference](http://static.layer.com/sdk/docs-1.1) for more the full API, and the [Change Log](CHANGELOG.md) for a summary of changes.
 
 ## Supported Browsers
 
@@ -263,7 +265,7 @@ query.on('change', function(evt) {
 });
 ```
 
-To get more granular details about the different types of `change` events and how to access just the data within the results that have changed, see the [Query API](http://static.layer.com/sdk/docs/#!/api/layer.Query).
+To get more granular details about the different types of `change` events and how to access just the data within the results that have changed, see the [Query API](http://static.layer.com/sdk/docs-1.1/#!/api/layer.Query).
 
 ## Authentication
 
