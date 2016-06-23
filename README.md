@@ -337,12 +337,8 @@ client.connect('Frodo_the_Dodo');
 ## Creating a Conversation
 
 ```javascript
-// Shorthand
-var conversation = client.createConversation(['a', 'b']);
-
-// Complete version
 var conversation = client.createConversation({
-    participants: ['a','b'],
+    participants: ['layer:///identities/a','layer:///identities/b'],
     distinct: false,
     metadata: {
         title: 'My conversation title'
