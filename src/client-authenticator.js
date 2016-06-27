@@ -1117,7 +1117,7 @@ ClientAuthenticator.prototype.isTrustedDevice = false;
  *        }
  *      });
  *
- * @type {object}
+ * @type {Object}
  */
 ClientAuthenticator.prototype.persistenceFeatures = null;
 

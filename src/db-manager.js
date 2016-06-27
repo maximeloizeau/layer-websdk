@@ -488,7 +488,7 @@ class DbManager extends Root {
    * @param {string} sortBy       - One of 'last_message' or 'created_at'; always sorts in DESC order
    * @param {string} [fromId=]    - For pagination, provide the conversationId to get Conversations after
    * @param {number} [pageSize=]  - To limit the number of results, provide a number for how many results to return.
-   * @param {Function} callback   - Callback for getting results
+   * @param {Function} [callback]  - Callback for getting results
    * @param {layer.Conversation[]} callback.result
    */
   loadConversations(sortBy, fromId, pageSize, callback) {
@@ -554,7 +554,7 @@ class DbManager extends Root {
    * @param {string} conversationId - ID of the Conversation whose Messages are of interest.
    * @param {string} [fromId=]    - For pagination, provide the messageId to get Messages after
    * @param {number} [pageSize=]  - To limit the number of results, provide a number for how many results to return.
-   * @param {Function} callback   - Callback for getting results
+   * @param {Function} [callback]   - Callback for getting results
    * @param {layer.Message[]} callback.result
    */
   loadMessages(conversationId, fromId, pageSize, callback) {
@@ -572,7 +572,7 @@ class DbManager extends Root {
    * @method loadAnnouncements
    * @param {string} [fromId=]    - For pagination, provide the messageId to get Announcements after
    * @param {number} [pageSize=]  - To limit the number of results, provide a number for how many results to return.
-   * @param {Function} callback
+   * @param {Function} [callback]
    * @param {layer.Announcement[]} callback.result
    */
   loadAnnouncements(fromId, pageSize, callback) {
@@ -725,6 +725,7 @@ class DbManager extends Root {
    * @method _loadSyncEventRelatedData
    * @private
    * @param {Object[]} syncEvents
+   * @param {Function} callback
    * @param {layer.SyncEvent[]} callback.result
    */
   _loadSyncEventRelatedData(syncEvents, callback) {
@@ -769,6 +770,7 @@ class DbManager extends Root {
    * @method _loadSyncEventResults
    * @private
    * @param {Object[]} syncEvents
+   * @param {Function} callback
    * @param {layer.SyncEvent[]} callback.result
    */
   _loadSyncEventResults(syncEvents, callback) {

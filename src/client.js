@@ -957,7 +957,7 @@ class Client extends ClientAuth {
    *
    * @method _scheduleCheckAndPurgeCache
    * @private
-   * @param {layer.Root}
+   * @param {layer.Root} object
    */
   _scheduleCheckAndPurgeCache(object) {
     if (object.isSaved()) {

@@ -95,7 +95,7 @@ class Syncable extends Root {
    * A websocket event has been received specifying that this resource
    * has been deleted.
    *
-   * @method
+   * @method handleWebsocketDelete
    * @protected
    * @param {Object} data
    */

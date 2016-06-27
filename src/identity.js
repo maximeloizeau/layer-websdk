@@ -348,7 +348,7 @@ Identity.prototype.phoneNumber = '';
  *
  * Full Identities Only.
  *
- * @type {object}
+ * @type {Object}
  */
 Identity.prototype.metadata = null;
 
