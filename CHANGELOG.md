@@ -39,6 +39,7 @@
   * `participants` property is now an array of `layer.Identity` objects rather than User IDs
   * Removes support for `client.createConversation(participantArray)` shorthand; now requires `client.createConversation({participants: participantArray})`.
 * layer.User has been removed.
+* layer.Query no longer defaults to a Conversation model; this must be specificied explicitly.
 
 #### Miscellaneous Changes
 

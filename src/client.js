@@ -3,7 +3,6 @@
 
     var client = new layer.Client({
       appId: 'layer:///apps/staging/ffffffff-ffff-ffff-ffff-ffffffffffff',
-      userId: 'Fred',
       challenge: function(evt) {
         myAuthenticator({
           nonce: evt.nonce,
@@ -13,13 +12,12 @@
       ready: function(client) {
         alert('I am Client; Server: Serve me!');
       }
-    });
+    }).connect('Fred')
  *
  * You can also initialize this as
 
     var client = new layer.Client({
-      appId: 'layer:///apps/staging/ffffffff-ffff-ffff-ffff-ffffffffffff',
-      userId: 'Fred'
+      appId: 'layer:///apps/staging/ffffffff-ffff-ffff-ffff-ffffffffffff'
     });
 
     client.on('challenge', function(evt) {
@@ -32,6 +30,8 @@
     client.on('ready', function(client) {
       alert('I am Client; Server: Serve me!');
     });
+
+    client.connect('Fred');
  *
  * ## API Synopsis:
  *
@@ -69,7 +69,6 @@
  *
  *     var client = new layer.Client({
  *        appId: 'layer:///apps/staging/ffffffff-ffff-ffff-ffff-ffffffffffff',
- *        userId: 'Fred',
  *        logLevel: layer.Constants.LOG.INFO
  *     });
  *
