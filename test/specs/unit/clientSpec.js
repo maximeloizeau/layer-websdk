@@ -760,6 +760,24 @@ describe("The Client class", function() {
                 expect(client._identitiesHash).toEqual(endHash);
                 expect(client._triggerAsync).toHaveBeenCalledWith('identities:add', {identities: [userIdentity]});
             });
+
+            it("Should not add an Identity only a display_name", function() {
+                // Setup
+                client._identitiesHash = {};
+                userIdentity  = new layer.Identity({
+                    client: client,
+                    fromServer: {
+                        display_name: "Fred"
+                    }
+                });
+
+                // Run
+                client._addIdentity(userIdentity);
+
+                // Posttest
+                expect(client._identitiesHash).toEqual({});
+            });
+
         });
 
         describe("The _removeIdentity() method", function() {
@@ -973,7 +991,8 @@ describe("The Client class", function() {
                 userIdentity = client._createObject(JSON.parse(JSON.stringify(responses.useridentity)));
                 serviceIdentity = client._createObject({
                     id: "layer:///identities/2",
-                    displayName: "ServiceIdentity"
+                    user_id: "2",
+                    display_name: "ServiceIdentity"
                 });
             });
 
@@ -990,7 +1009,7 @@ describe("The Client class", function() {
                 qHash[query.id] = query;
                 identHash[userIdentity.id] = userIdentity;
                 identHash[client.user.id] = client.user;
-                identHash[client.getIdentity('a').id] = client.getIdentity('a');
+                identHash['layer:///identities/a'] = client.getIdentity('a');
                 identHash[responses.useridentity.id] = client.getIdentity(responses.useridentity.id);
                 identHash[userIdentity2.id] = userIdentity2;
                 identHash[serviceIdentity.id] = serviceIdentity;

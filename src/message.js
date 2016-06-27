@@ -174,7 +174,7 @@ class Message extends Syncable {
     if (options && options.fromServer) {
       client._addMessage(this);
       const status = this.recipientStatus[client.user.id];
-      if (status !== Constants.RECEIPT_STATE.READ && status !== Constants.RECEIPT_STATE.DELIVERED) {
+      if (status && status !== Constants.RECEIPT_STATE.READ && status !== Constants.RECEIPT_STATE.DELIVERED) {
         this._sendReceipt('delivery');
       }
     }
@@ -549,11 +549,14 @@ class Message extends Syncable {
     }
 
     this._setSyncing();
-    client._addMessage(this);
 
     // Make sure that the Conversation has been created on the server
     // and update the lastMessage property
     conversation.send(this);
+
+    // Calling this will add this to any listening Queries... so position needs to have been set first;
+    // handled in conversation.send(this)
+    client._addMessage(this);
 
     // allow for modification of message before sending
     this.trigger('messages:sending');
@@ -787,12 +790,15 @@ class Message extends Syncable {
     this.sentAt = new Date(message.sent_at);
     this.receivedAt = message.received_at ? new Date(message.received_at) : undefined;
 
-    const senderId = 'layer:///identities/' + encodeURIComponent(message.sender.user_id || 'LYR_INTERNAL_' + message.sender.display_name);
-    let sender = client.getIdentity(senderId);
+    let sender;
 
+    if (message.sender.id) {
+      sender = client.getIdentity(message.sender.id);
+    }
+
+    // Because there may be no ID, we have to bypass client._createObject and its switch statement.
     if (!sender) {
-      if (!message.sender.id) message.sender.id = senderId;
-      sender = client._createObject(message.sender);
+      sender = Identity._createFromServer(message.sender, client);
     }
     this.sender = sender;
 

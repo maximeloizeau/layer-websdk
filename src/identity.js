@@ -31,13 +31,20 @@ const LayerError = require('./layer-error');
 class Identity extends Syncable {
   constructor(options = {}) {
     // Make sure the ID from handle fromServer parameter is used by the Root.constructor
-    if (options.fromServer) options.id = options.fromServer.id;
+    if (options.fromServer) {
+      options.id = options.fromServer.id || '-';
+    } else if (!options.id && options.userId) {
+      options.id = Identity.prefixUUID + encodeURIComponent(options.userId);
+    } else if (options.id && !options.userId) {
+      options.userId = options.id.substring(Identity.prefixUUID.length);
+    }
 
     // Make sure we have an clientId property
     if (options.client) options.clientId = options.client.appId;
     if (!options.clientId) throw new Error(LayerError.dictionary.clientMissing);
 
     super(options);
+    if (this.id === '-') this.id = '';
 
     this.isInitializing = true;
 
@@ -48,7 +55,7 @@ class Identity extends Syncable {
       this._populateFromServer(options.fromServer);
     }
 
-    if (!this.url && this.userId) this.url = `${this.getClient().url}/identities/${this.userId}`;
+    if (!this.url && this.id) this.url = `${this.getClient().url}/${this.id.substring(9)}`;
     this.getClient()._addIdentity(this);
 
     this.isInitializing = false;
@@ -109,7 +116,7 @@ class Identity extends Syncable {
       this.isFullIdentity = true;
     }
 
-    if (!this.url) {
+    if (!this.url && this.id) {
       this.url = this.getClient().url + this.id.substring(8);
     }
 
@@ -179,17 +186,6 @@ class Identity extends Syncable {
       method: 'DELETE',
       syncable: {},
     });
-  }
-
-  /**
-   * After a successful call to _load(), register the Identity.
-   *
-   * @method _loaded
-   * @protected
-   * @param {Object} data - Identity data loaded from the server
-   */
-  _loaded(data) {
-    this.getClient()._addIdentity(this);
   }
 
   /**

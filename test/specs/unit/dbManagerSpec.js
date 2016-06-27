@@ -361,10 +361,13 @@ describe("The DbManager Class", function() {
         message = client._createObject(JSON.parse(JSON.stringify(responses.announcement)));
         message.receivedAt = new Date();
         message.sender = new layer.Identity({
-          id: 'layer:///identities/LYR_INTERNAL_Hey+ho',
-          url: null,
-          displayName: 'Hey ho',
-          avatarUrl: null,
+          fromServer: {
+            id: null,
+            user_id: null,
+            url: null,
+            display_name: 'Hey ho',
+            avatar_url: null,
+          },
           client: client
         });
         expect(dbManager._getMessageData([message])).toEqual([{
@@ -378,10 +381,10 @@ describe("The DbManager Class", function() {
           conversation: 'announcement',
           sender: {
             user_id: '',
-            id: 'layer:///identities/LYR_INTERNAL_Hey+ho',
-            url: null,
+            id: '',
+            url: '',
             display_name: 'Hey ho',
-            avatar_url: null
+            avatar_url: ''
           },
           sync_state: message.syncState,
           parts: [{

@@ -76,7 +76,7 @@ describe("The Identity Class", function() {
         });
         serviceIdentity = new layer.Identity({
           clientId: client.appId,
-          name: "Sauron the Sore",
+          display_name: "Sauron the Sore",
           id: "layer:///identities/Sauron the Sore"
         });
 
@@ -145,6 +145,17 @@ describe("The Identity Class", function() {
             client: client
           })
           expect(client._addIdentity).toHaveBeenCalledWith(identity);
+        });
+
+        it("Should not register deprecated non-ided identities", function() {
+          var oldIdentity = new layer.Identity({
+            clientId: client.appId,
+            fromServer: {
+              display_name: "Sauron the Sore"
+            }
+          });
+          expect(oldIdentity.id).toEqual('');
+          expect(client._identitiesHash[oldIdentity.id]).toBe(undefined);
         });
       });
 
@@ -360,14 +371,6 @@ describe("The Identity Class", function() {
             syncable: {}
           });
         });
-      });
-
-      describe("The _loaded() method", function() {
-         it("Should call client._addIdentity", function() {
-            spyOn(client, "_addIdentity");
-            identity._loaded({});
-            expect(client._addIdentity).toHaveBeenCalledWith(identity);
-         });
       });
 
       describe("The _handleWebsocketDelete() method", function() {

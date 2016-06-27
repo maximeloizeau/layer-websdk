@@ -312,7 +312,7 @@ describe("The SyncManager Class", function() {
         beforeEach(function() {
           client._clientReady();
         });
-        it("Should call bsocketManager.sendRequest", function() {
+        it("Should call socketManager.sendRequest", function() {
             var data = {name: "fred"}
             syncManager.queue = [new layer.WebsocketSyncEvent({
                 data: data
@@ -353,6 +353,24 @@ describe("The SyncManager Class", function() {
 
             // Posttest
             expect(syncManager.queue[0].isFiring).toBe(true);
+        });
+
+        it("Should only allow one call to be within _validateRequest", function() {
+            spyOn(syncManager, "_validateRequest");
+            syncManager.queue = [new layer.WebsocketSyncEvent({
+                data: {name: "fred"}
+            })];
+
+            // Run
+            syncManager._processNextRequest();
+            expect(syncManager.queue[0]._isValidating).toBe(true);
+            expect(syncManager._validateRequest.calls.count()).toEqual(1);
+            syncManager._processNextRequest();
+
+            // Posttest
+            expect(syncManager.queue[0]._isValidating).toBe(true);
+            expect(syncManager._validateRequest.calls.count()).toEqual(1);
+
         });
     });
 

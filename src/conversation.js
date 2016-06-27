@@ -172,7 +172,8 @@ class Conversation extends Syncable {
 
     // If this is part of a create({distinct:true}).send() call where
     // the distinct conversation was found, just trigger the cached event and exit
-    if (this._sendDistinctEvent) return this._handleLocalDistinctConversation();
+    const wasLocalDistinct = Boolean(this._sendDistinctEvent);
+    if (this._sendDistinctEvent) this._handleLocalDistinctConversation();
 
     // If a message is passed in, then that message is being sent, and is our
     // new lastMessage (until the websocket tells us otherwise)
@@ -194,7 +195,7 @@ class Conversation extends Syncable {
     }
 
     // If the Conversation is already on the server, don't send.
-    if (this.syncState !== Constants.SYNC_STATE.NEW) return this;
+    if (wasLocalDistinct || this.syncState !== Constants.SYNC_STATE.NEW) return this;
 
     // Make sure this user is a participant (server does this for us, but
     // this insures the local copy is correct until we get a response from

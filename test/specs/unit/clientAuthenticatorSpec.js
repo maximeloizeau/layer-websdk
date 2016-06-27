@@ -328,7 +328,7 @@ describe("The Client Authenticator Class", function() {
                     url: client.url + "/nonces",
                     requestHeaders: {
                         "content-type": "application/json",
-                        "accept": "application/vnd.layer+json; version=1.0"
+                        "accept": "application/vnd.layer+json; version=2.0"
                     },
                     method: "POST"
                 });
