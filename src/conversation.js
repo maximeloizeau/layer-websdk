@@ -64,7 +64,6 @@ const Util = require('./client-utils');
 const Constants = require('./const');
 const Root = require('./root');
 const LayerEvent = require('./layer-event');
-const { Identity } = require('./identity');
 
 class Conversation extends Syncable {
 
@@ -80,7 +79,7 @@ class Conversation extends Syncable {
    * @method constructor
    * @protected
    * @param  {Object} options
-   * @param {string[]/layer.Identity[]} options.participants - Array of participant ids or layer.Identity instances
+   * @param {string[]/layer.Identity[]} options.participants - Array of Participant IDs or layer.Identity instances
    * @param {boolean} [options.distinct=true] - Is the conversation distinct
    * @param {Object} [options.metadata] - An object containing Conversation Metadata.
    * @return {layer.Conversation}
@@ -397,7 +396,7 @@ class Conversation extends Syncable {
    * TODO WEB-967: Roll participants back on getting a server error
    *
    * @method addParticipants
-   * @param  {string[]/layer.Identity[]} participants - Array of participant ids or Identity objects
+   * @param  {string[]/layer.Identity[]} participants - Array of Participant IDs or Identity objects
    * @returns {layer.Conversation} this
    */
   addParticipants(participants) {
@@ -422,12 +421,12 @@ class Conversation extends Syncable {
    * TODO  WEB-967: Roll participants back on getting a server error
    *
    * @method removeParticipants
-   * @param  {string[]/layer.Identity[]} participants - Array of participant ids or Identity objects
+   * @param  {string[]/layer.Identity[]} participants - Array of Participant IDs or Identity objects
    * @returns {layer.Conversation} this
    */
   removeParticipants(participants) {
     const currentParticipants = {};
-    this.participants.forEach((participant) => currentParticipants[participant.id] = true);
+    this.participants.forEach(participant => (currentParticipants[participant.id] = true));
     const client = this.getClient();
     const identities = client._fixIdentities(participants);
 
@@ -451,7 +450,7 @@ class Conversation extends Syncable {
    * TODO WEB-967: Roll participants back on getting a server error
    *
    * @method replaceParticipants
-   * @param  {string[]/layer.Identity[]} participants - Array of participant ids or Identity objects
+   * @param  {string[]/layer.Identity[]} participants - Array of Participant IDs or Identity objects
    * @returns {layer.Conversation} this
    */
   replaceParticipants(participants) {
@@ -1109,7 +1108,7 @@ class Conversation extends Syncable {
    * @protected
    * @param  {Object} options
    * @param  {layer.Client} options.client
-   * @param  {string[]/layer.Identity[]} options.participants - Array of userIds or layer.Identity objects to create a conversation with.
+   * @param  {string[]/layer.Identity[]} options.participants - Array of Participant IDs or layer.Identity objects to create a conversation with.
    * @param {boolean} [options.distinct=true] - Create a distinct conversation
    * @param {Object} [options.metadata={}] - Initial metadata for Conversation
    * @return {layer.Conversation}

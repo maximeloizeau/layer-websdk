@@ -92,55 +92,6 @@ class Syncable extends Root {
   }
 
   /**
-   * Load this resource from the server.
-   *
-   * Called from the static layer.Syncable.load() method
-   *
-   * @method _load
-   * @private
-   */
-  _load() {
-    this.syncState = SYNC_STATE.LOADING;
-    this._xhr({
-      method: 'GET',
-      sync: false,
-    }, result => this._loadResult(result));
-  }
-
-  /**
-   * Process the server's results from calling `load()`
-   *
-   * @method _loadResult
-   * @private
-   * @param {Object} result
-   */
-  _loadResult(result) {
-    const prefix = this.constructor.eventPrefix;
-    if (!result.success) {
-      this.syncState = SYNC_STATE.NEW;
-      this._triggerAsync(prefix + ':loaded-error', { error: result.data });
-      setTimeout(() => this.destroy(), 100); // Insure destroyed AFTER loaded-error event has triggered
-    } else {
-      this._populateFromServer(result.data);
-      this._loaded(result.data);
-      this.trigger(prefix + ':loaded');
-    }
-  }
-
-  /**
-   * Processing the result of a _load() call.
-   *
-   * Typically used to register the object and cleanup any properties not handled by _populateFromServer.
-   *
-   * @method _loaded
-   * @private
-   * @param  {Object} data - Response data from server
-   */
-  _loaded(data) {
-
-  }
-
-  /**
    * A websocket event has been received specifying that this resource
    * has been deleted.
    *

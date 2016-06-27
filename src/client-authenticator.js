@@ -1041,7 +1041,7 @@ ClientAuthenticator.prototype.appId = '';
 /**
  * You can use this to find the userId you are logged in as.
  *
- * @type {layer.UserIdentity}
+ * @type {layer.Identity}
  */
 ClientAuthenticator.prototype.user = null;
 
