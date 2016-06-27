@@ -10,7 +10,7 @@
 /*
  * How Identities fit into the system:
  *
- * 1. As part of initialization, load the authenticated user’s full Identity record so that the Client knows more than just the `userId` of its user.
+ * 1. As part of initialization, load the authenticated user's full Identity record so that the Client knows more than just the `userId` of its user.
  *    client.user = <Identity>
  * 2. Any time we get a Basic Identity via `message.sender` or Conversations, see if we have an Identity for that sender,
  *    and if not create one using the Basic Identity.  There should never be a duplicate Identity.

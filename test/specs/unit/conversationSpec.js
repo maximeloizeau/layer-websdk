@@ -344,6 +344,31 @@ describe("The Conversation Class", function() {
           expect(conversation.lastMessage.position > mOld.position).toBe(true);
         });
 
+        it("Should update the lastMessage position property if prior lastMessage AND calling _handleLocalDistinctConversation", function() {
+          // Setup
+          spyOn(conversation, "_handleLocalDistinctConversation");
+          conversation._sendDistinctEvent = true;
+
+          mOld = new layer.Message({
+            client: client,
+            parts: [{body: "hey", mimeType: "text/plain"}]
+          });
+          mOld.position = 5;
+          conversation.lastMessage = mOld;
+          m = new layer.Message({
+            client: client,
+            parts: [{body: "hey", mimeType: "text/plain"}]
+          });
+
+          // Run
+          conversation.send(m);
+
+          // Posttest
+          expect(conversation.lastMessage.position > mOld.position).toBe(true);
+          expect(conversation._handleLocalDistinctConversation).toHaveBeenCalledWith();
+        });
+
+
         it("Should update the lastMessage position property to higher position the more time has passed", function(done) {
           jasmine.clock().uninstall();
 
@@ -453,7 +478,6 @@ describe("The Conversation Class", function() {
             expect(conversation._handleLocalDistinctConversation).toHaveBeenCalledWith();
             expect(client.sendSocketRequest).not.toHaveBeenCalled();
         });
-
 
 
         it("Should be chainable", function() {

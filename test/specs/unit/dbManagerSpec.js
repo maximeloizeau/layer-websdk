@@ -362,7 +362,8 @@ describe("The DbManager Class", function() {
         message.receivedAt = new Date();
         message.sender = new layer.Identity({
           fromServer: {
-            id: '',
+            id: null,
+            user_id: null,
             url: null,
             display_name: 'Hey ho',
             avatar_url: null,

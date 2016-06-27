@@ -1205,15 +1205,22 @@ describe("The Message class", function() {
             expect(m._setSyncing).toHaveBeenCalledWith();
         });
 
-        it("Should register the message if from server", function() {
+        it("Should register the message after calling conversation.send", function() {
             // Setup
-            spyOn(client, "_addMessage");
+            var isRegistered = false;
+            spyOn(conversation, "send").and.callFake(function() {
+                expect(isRegistered).toBe(false);
+            });
+            spyOn(client, "_addMessage").and.callFake(function() {
+                isRegistered = true;
+            });
 
             // Run
             m.send();
 
             // Posttest
             expect(client._addMessage).toHaveBeenCalledWith(m);
+            expect(conversation.send).toHaveBeenCalledWith(m);
         });
 
         it("Should call _preparePartsForSending with no notification property", function() {
@@ -1241,7 +1248,7 @@ describe("The Message class", function() {
             });
         });
 
-        it("Should set sender.userId", function() {
+        it("Should set sender", function() {
             // Setup
             spyOn(client, "sendSocketRequest");
 
@@ -1249,7 +1256,7 @@ describe("The Message class", function() {
             m.send();
 
             // Posttest
-            expect(m.sender.userId).toEqual(client.user.userId);
+            expect(m.sender).toBe(client.user);
         });
 
         it("Should trigger messages:sending", function() {
@@ -1906,6 +1913,7 @@ describe("The Message class", function() {
             });
             var data = JSON.parse(JSON.stringify(responses.message1));
             delete client._identitiesHash[data.sender.id];
+            data.sender.id += "1";
             data.sender.user_id += "1";
             expect(client.getIdentity(data.sender.user_id)).toEqual(null);
 
@@ -1914,9 +1922,11 @@ describe("The Message class", function() {
             // Posttest
             expect(m.sender).toEqual(jasmine.any(layer.Identity));
             expect(m.sender.userId).toEqual(data.sender.user_id);
+            expect(m.sender.id).toEqual(data.sender.id);
         });
 
-        it("Should set sender.name", function() {
+        it("Should set sender.display_name to an anonymous Identity", function() {
+            client._identitiesHash = {};
             m = new layer.Message({
                 client: client
             });
@@ -1927,7 +1937,10 @@ describe("The Message class", function() {
 
             expect(m.sender.displayName).toEqual("Fred");
             expect(m.sender.userId).toEqual("");
+            expect(m.sender.id).toEqual("");
+            expect(m._events).toEqual({});
             expect(m.sender).toEqual(jasmine.any(layer.Identity));
+            expect(client._identitiesHash).toEqual({});
         });
 
         it("Should call _setSynced", function() {

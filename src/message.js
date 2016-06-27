@@ -174,7 +174,7 @@ class Message extends Syncable {
     if (options && options.fromServer) {
       client._addMessage(this);
       const status = this.recipientStatus[client.user.id];
-      if (status !== Constants.RECEIPT_STATE.READ && status !== Constants.RECEIPT_STATE.DELIVERED) {
+      if (status && status !== Constants.RECEIPT_STATE.READ && status !== Constants.RECEIPT_STATE.DELIVERED) {
         Util.defer(() => this._sendReceipt('delivery'));
       }
     }
@@ -549,11 +549,14 @@ class Message extends Syncable {
     }
 
     this._setSyncing();
-    client._addMessage(this);
 
     // Make sure that the Conversation has been created on the server
     // and update the lastMessage property
     conversation.send(this);
+
+    // Calling this will add this to any listening Queries... so position needs to have been set first;
+    // handled in conversation.send(this)
+    client._addMessage(this);
 
     // allow for modification of message before sending
     this.trigger('messages:sending');

@@ -139,7 +139,7 @@ class Client extends ClientAuth {
    */
   _clientReady() {
     if (!this.user) {
-      const user = Identity.load('layer:///identities/' + encodeURIComponent(this.userId), this);
+      const user = Identity.load(Identity.prefixUUID + encodeURIComponent(this.userId), this);
       user.sessionOwner = true;
       user.on('identities:loaded', () => {
         this.user = user;
@@ -502,9 +502,7 @@ class Client extends ClientAuth {
     if (this._identitiesHash[id]) {
       return this._identitiesHash[id];
     } else if (canLoad) {
-      const identity = Identity.load(id, this);
-      if (userId) identity.userId = userId;
-      return identity;
+      return Identity.load(id, this);
     }
 
     return null;

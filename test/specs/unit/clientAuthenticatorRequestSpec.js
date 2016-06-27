@@ -447,7 +447,7 @@ describe("The Client Authenticator Requests", function() {
             expect(headers).toEqual({
                 "hey-ho": "Doh",
                 "content-type": "application/json",
-                accept: "application/vnd.layer+json; version=1.0"
+                accept: "application/vnd.layer+json; version=2.0"
             });
         });
 
@@ -462,7 +462,7 @@ describe("The Client Authenticator Requests", function() {
             expect(headers).toEqual({
                 "hey-ho": "Doh",
                 "content-type": "application/json",
-                accept: "application/vnd.layer+json; version=1.0"
+                accept: "application/vnd.layer+json; version=2.0"
             });
         });
 
@@ -476,7 +476,7 @@ describe("The Client Authenticator Requests", function() {
             // Posttest
             expect(headers).toEqual({
                 "content-type": "text/mountain",
-                accept: "application/vnd.layer+json; version=1.0"
+                accept: "application/vnd.layer+json; version=2.0"
             });
         });
     });
