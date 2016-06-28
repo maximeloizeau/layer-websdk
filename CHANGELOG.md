@@ -37,19 +37,23 @@
   * layer.Client.login has been removed; see layer.Client.connect instead
 * layer.Conversation
   * `participants` property is now an array of `layer.Identity` objects rather than User IDs
-  * Removes support for `client.createConversation(participantArray)` shorthand; now requires `client.createConversation({participants: participantArray})`.
+  * Removes support for `client.createConversation(participantArray)` shorthand; now requires `client.createConversation({participants:
+   participantArray})`.
+  * Creating a Conversation, adding, removing and setting participants of an existing Conversation all accept Identity IDs or Identity Objects rather than User IDs.
+    * For backwards compatibility, we are continuing to accept User IDs (`UserA`).  For now.
+* layer.Message
+  * The `recipient_status` property is now a hash of Identity IDs, not User IDs
+* layer.TypingIndicators.TypingIndicatorListener
+  * The `typing-indicator-change` event now delivers arrays of Identities instead of User IDs
 * layer.User has been removed.
 * layer.Query no longer defaults to a Conversation model; this must be specificied explicitly.
 
 #### Miscellaneous Changes
 
-* layer.Conversation
-  * Creating a Conversation, adding, removing and setting participants of an existing Conversation all accept Identity IDs or Identity Objects.
-  * For backwards compatibility, we are continueing to accept User IDs (`UserA`) in addition to Identity IDs (`layer:///identities/UserA`).  For now.
 * Deduplication
   * If a response is not received to a request to create a Conversation or Message, it will be retried with deduplication support to insure that if it was created before, a duplicate is not created on retry.
 * layer.Message
-  * layer.Message.getConversation now supports a boolean parameter to load from server if Conversation is not cached.
+  * `layer.Message.getConversation()` now supports a boolean parameter to load from server if Conversation is not cached.
 * layer.Client
   * Adds a `user` property containing a `layer.Identity` instance representing the authenticated user of this session.
 * layer.OnlineStateManager: Now starts managing isOnline state as soon as `client.connect()` or `client.connectWithSession()` are called.

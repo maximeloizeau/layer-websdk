@@ -181,18 +181,6 @@ class Message extends Syncable {
   }
 
   /**
-   * Get the layer.Client associated with this layer.Message.
-   *
-   * Uses the layer.Message.clientId property.
-   *
-   * @method getClient
-   * @return {layer.Client}
-   */
-  getClient() {
-    return ClientRegistry.get(this.clientId);
-  }
-
-  /**
    * Get the layer.Conversation associated with this layer.Message.
    *
    * Uses the layer.Message.conversationId.

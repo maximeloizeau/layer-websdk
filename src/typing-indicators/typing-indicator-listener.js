@@ -87,7 +87,10 @@ class TypingIndicatorListener extends Root {
     const evt = evtIn.data;
 
     if (this._isRelevantEvent(evt)) {
-      const identity = this._getClient().getIdentity(evt.body.data.sender.id) || this._getClient()._createObject(evt.body.data.sender);
+      // Could just do _createObject() but for ephemeral events, going through _createObject and updating
+      // objects for every typing indicator seems a bit much.  Try getIdentity and only create if needed.
+      const identity = this._getClient().getIdentity(evt.body.data.sender.id) ||
+        this._getClient()._createObject(evt.body.data.sender);
       const state = evt.body.data.action;
       const conversationId = evt.body.object.id;
       let stateEntry = this.state[conversationId];
@@ -229,8 +232,8 @@ TypingIndicatorListener._supportedEvents = [
    * There has been a change in typing indicator state of other users.
    * @event change
    * @param {layer.LayerEvent} evt
-   * @param {string[]} evt.typing - Array of userIds of people who are typing
-   * @param {string[]} evt.paused - Array of userIds of people who are paused
+   * @param {layer.Identity[]} evt.typing - Array of Identities of people who are typing
+   * @param {layer.Identity[]} evt.paused - Array of Identities of people who are paused
    * @param {string} evt.conversationId - ID of the Converation that has changed typing indicator state
    */
   'typing-indicator-change',

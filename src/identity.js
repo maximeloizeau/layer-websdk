@@ -44,6 +44,9 @@ class Identity extends Syncable {
     if (!options.clientId) throw new Error(LayerError.dictionary.clientMissing);
 
     super(options);
+
+    // The - is here to prevent Root from generating a UUID for an ID.  ID must map to UserID
+    // and can't be randomly generated.  This only occurs from Platform API sending with `sender.name` and no identity.
     if (this.id === '-') this.id = '';
 
     this.isInitializing = true;
@@ -204,7 +207,6 @@ class Identity extends Syncable {
  */
   _setUserId(userId) {
     const client = this.getClient();
-    if (!client) throw new Error(LayerError.dictionary.clientMissing);
     client._removeIdentity(this);
     this.__userId = userId;
     const encoded = encodeURIComponent(userId);
@@ -241,9 +243,8 @@ class Identity extends Syncable {
   // Turn a Full Identity into a Basic Identity and delete the Full Identity from the database
   _handleWebsocketDelete(data) {
     this.getClient().dbManager.deleteObjects('identities', [this]);
-    [
-      'firstName', 'lastName', 'emailAddress', 'phoneNumber', 'metadata', 'publicKey', 'isFullIdentity', 'type',
-    ].forEach(key => delete this[key]);
+    ['firstName', 'lastName', 'emailAddress', 'phoneNumber', 'metadata', 'publicKey', 'isFullIdentity', 'type']
+      .forEach(key => delete this[key]);
     this._triggerAsync('identities:unfollow');
   }
 

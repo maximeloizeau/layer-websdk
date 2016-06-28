@@ -5,11 +5,11 @@
 
 The Layer Web SDK is a JavaScript library for adding chat services to your web application. For detailed documentation, tutorials and guides please visit our [Web SDK documentation](https://developer.layer.com/docs/websdk).
 
-## About the `v1.1.0` Beta Release
+## About the `v2.0.0-beta` Beta Release
 
 This **public beta is NOT production ready**; while we will not stop you from using it in production, your expectations of polish and support will need to account for this.
 
-See the [API Reference](http://static.layer.com/sdk/docs-1.1) for more the full API, and the [Change Log](CHANGELOG.md) for a summary of changes.
+See the [API Reference (Beta)](http://static.layer.com/sdk/docs-2.0-beta) for more the full API, and the [Change Log](CHANGELOG.md#110) for a summary of changes.
 
 ## Supported Browsers
 
@@ -29,10 +29,10 @@ All examples below assume your using the CDN installation method; adapting instr
 Simplest approach to install the Web SDK is to add the following script tag:
 
 ```html
-<script src='//cdn.layer.com/sdk/1.1/layer-websdk.min.js'></script>
+<script src='//cdn.layer.com/sdk/2.0.0-beta/layer-websdk.min.js'></script>
 ```
 
-* For stricter code control, use `//cdn.layer.com/sdk/1.1.0/layer-websdk.min.js` instead.
+* For stricter code control, use `//cdn.layer.com/sdk/2.0.0-beta.1/layer-websdk.min.js` instead.
 
 All classes can then be accessed via the `layer` namespace:
 
@@ -44,7 +44,7 @@ var client = new layer.Client({
 
 ### NPM
 
-    npm install layer-websdk --save
+    npm install layer-websdk@2 --save
 
 All classes can then be accessed via the layer module:
 
@@ -270,7 +270,7 @@ query.on('change', function(evt) {
 });
 ```
 
-To get more granular details about the different types of `change` events and how to access just the data within the results that have changed, see the [Query API](http://static.layer.com/sdk/docs-1.1/#!/api/layer.Query).
+To get more granular details about the different types of `change` events and how to access just the data within the results that have changed, see the [Query API](http://static.layer.com/sdk/docs-2.0-beta/#!/api/layer.Query).
 
 ## Authentication
 
@@ -382,7 +382,7 @@ message.addPart({
 message.send();
 ```
 
-Also note that the send method takes an optional parameter for push notifications; without that parameter there will be no new message notification for mobile devic users:
+Also note that the send method takes an optional parameter for push notifications; without that parameter there will be no new message notification for mobile device users:
 
 ```javascript
 message.send({
@@ -442,7 +442,7 @@ The `messages:loaded` event will be called immediately if its already loaded.
 
 ## Identity
 
-Identity is a key concept for working with Layer;
+Identity is a key concept for working with Layer's Web SDK;
 
 * Your Conversations have a `participants` property that consists of an array of layer.Identity objects
 * Each message has a `sender` property that is a layer.Identity object
@@ -454,11 +454,11 @@ Any method for operating upon the `participants` of a Conversation will either e
 var identityId = 'layer:///identities/' + encodeURIComponent(userId);
 ```
 
-The Identity object insures that any time you receive an object from Layer, it comes with enough information to know who a user is and how to render that user, without having to Query your own server to gather this data.  Each Identity comes with:
+The Identity object insures that any time you receive an object from Layer, it comes with enough information to know who a user is and how to render that user. In previous versions, you would have to Query your own server to gather this data.  Each Identity comes with:
 
 * `userId`: Allows you to map the Identity to a user in your own User Management system
-* `id`: Allows you to identify the user to Layer
-* `displayName` & `avatarUrl`: Helps you to render the user
+* `id`: Allows you to identify the user to any of Layer's APIs
+* `displayName` & `avatarUrl`: Helps you to render the user within your UI
 
 Note that in order to populate `displayName` and `avatarUrl` with values, you must either
 
@@ -469,8 +469,8 @@ Note that in order to populate `displayName` and `avatarUrl` with values, you mu
 
 Sometimes it can be useful to load the Identities of people your user interacts with.  The list of users that is retreived via a Query is the list of people where:
 
-* They have at some point shared a Conversation with them
-* They called `client.followIdentity(Identity ID)` on  the user
+* They have at some point shared a Conversation with your user
+* Your user called `client.followIdentity(Identity ID)` on them
 * Your server has used the [Platform API](https://developer.layer.com/docs/platform) to make these users follow one another
 
 This list is useful for generating a list of people to create a Conversation with, and providing both information for rendering them, as well as profile information to show your users.
@@ -497,7 +497,7 @@ var client = new layer.Client({
 });
 ```
 
-By default, the following types of data are stored:
+By default, `isTrustedDevice` will enable the following types of data to be stored:
 
 * Conversations
 * Messages

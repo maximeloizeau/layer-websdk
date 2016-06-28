@@ -683,8 +683,10 @@ class Conversation extends Syncable {
         this.__updateMetadata(newValue, oldValue, paths);
       } else if (paths[0] === 'participants') {
         const client = this.getClient();
+        // oldValue/newValue come as a Basic Identity POJO; lets deliver events with actual instances
         oldValue = oldValue.map(identity => client.getIdentity(identity.id));
-        this.__updateParticipants(newValue.map(identityObj => client.getIdentity(identityObj.id)), oldValue);
+        newValue = newValue.map(identity => client.getIdentity(identity.id));
+        this.__updateParticipants(newValue, oldValue);
       }
       this._disableEvents = events;
     } catch (err) {
@@ -999,7 +1001,6 @@ class Conversation extends Syncable {
    */
   __updateParticipants(newValue, oldValue) {
     if (this._inLayerParser) return;
-    newValue = this.getClient()._fixIdentities(newValue);
     const change = this._getParticipantChange(newValue, oldValue);
     if (change.add.length || change.remove.length) {
       change.property = 'participants';
