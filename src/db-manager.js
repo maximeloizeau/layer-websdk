@@ -4,6 +4,8 @@
  * This class manages all indexedDB access.  It is not responsible for any localStorage access, though it may
  * receive configurations related to data stored in localStorage.  It will simply ignore those configurations.
  *
+ * Rich Content will be written to IndexedDB as long as its small; see layer.DbManager.MaxPartSize for more info.
+ *
  * TODO:
  * 0. Redesign this so that knowledge of the data is not hard-coded in
  * @class layer.DbManager
@@ -18,6 +20,7 @@ const SyncEvent = require('./sync-event');
 const Constants = require('./const');
 const SYNC_NEW = Constants.SYNC_STATE.NEW;
 const Util = require('./client-utils');
+const HasBlob = typeof Blob !== 'undefined';
 
 function getDate(inDate) {
   return inDate ? inDate.toISOString() : null;
@@ -342,19 +345,22 @@ class DbManager extends Root {
     }).map(message => ({
       id: message.id,
       url: message.url,
-      parts: message.parts.map(part => ({
-        id: part.id,
-        body: part.body,
-        encoding: part.encoding,
-        mime_type: part.mimeType,
-        content: !part._content ? null : {
-          id: part._content.id,
-          download_url: part._content.downloadUrl,
-          expiration: part._content.expiration,
-          refresh_url: part._content.refreshUrl,
-          size: part._content.size,
-        },
-      })),
+      parts: message.parts.map(part => {
+        const body = HasBlob && part.body instanceof Blob && part.body.size > DbManager.MaxPartSize ? null : part.body;
+        return {
+          body,
+          id: part.id,
+          encoding: part.encoding,
+          mime_type: part.mimeType,
+          content: !part._content ? null : {
+            id: part._content.id,
+            download_url: part._content.downloadUrl,
+            expiration: part._content.expiration,
+            refresh_url: part._content.refreshUrl,
+            size: part._content.size,
+          },
+        };
+      }),
       position: message.position,
       sender: this._getIdentityData([message.sender], true)[0],
       recipient_status: message.recipientStatus,
@@ -1078,6 +1084,13 @@ DbManager.prototype._permission_syncQueue = false;
  * @type IDBDatabase
  */
 DbManager.prototype.db = null;
+
+/**
+ * Rich Content may be written to indexeddb and persisted... if its size is less than MaxPartSize
+ * @static
+ * @type {Number}
+ */
+DbManager.MaxPartSize = 250000;
 
 DbManager._supportedEvents = [
   'open', 'error',

@@ -105,7 +105,7 @@ class MessagePart extends Root {
     }
     super(newOptions);
     if (!this.size && this.body) this.size = this.body.length;
-    if (HasBlob && this.body instanceof Blob) {
+    if (HasBlob && this.body instanceof Blob && !MessagePart.isTextualMimeType(this.mimeType)) {
       this.url = URL.createObjectURL(this.body);
     }
   }
@@ -141,6 +141,24 @@ class MessagePart extends Root {
    */
   _getMessage() {
     return this._getClient().getMessage(this.id.replace(/\/parts.*$/, ''));
+  }
+
+ /**
+  * Given a File/Blob return a string.
+  *
+  * @private
+  * @method _fetchTextFromFile
+  * @param {Blob} file
+  * @param {Function} callback
+  * @param {String} callback.result
+  */
+  _fetchTextFromFile(file, callback) {
+    if (typeof file === 'string') return callback(file);
+    const reader = new LocalFileReader();
+    reader.addEventListener('loadend', () => {
+      callback(reader.result);
+    });
+    reader.readAsText(file);
   }
 
   /**
@@ -181,15 +199,11 @@ class MessagePart extends Root {
     if (err) {
       this.trigger('content-loaded-error', err);
     } else {
-      this.url = URL.createObjectURL(result);
       this.isFiring = false;
-      if (this.mimeType === 'text/plain') {
-        const reader = new LocalFileReader();
-        reader.addEventListener('loadend', () => {
-          this._fetchContentComplete(reader.result, callback);
-        });
-        reader.readAsText(result);
+      if (MessagePart.isTextualMimeType(this.mimeType)) {
+        this._fetchTextFromFile(result, text => this._fetchContentComplete(text, callback));
       } else {
+        this.url = URL.createObjectURL(result);
         this._fetchContentComplete(result, callback);
       }
     }
@@ -397,6 +411,10 @@ class MessagePart extends Root {
     }
   }
 
+  isBlob() {
+    return typeof Blob !== 'undefined' && this.body instanceof Blob;
+  }
+
   /**
    * Returns the text for any text/plain part.
    *
@@ -406,7 +424,7 @@ class MessagePart extends Root {
    * @return {string}
    */
   getText() {
-    if (this.mimeType === 'text/plain') {
+    if (MessagePart.isTextualMimeType(this.mimeType)) {
       return this.body;
     } else {
       return '';
@@ -429,6 +447,10 @@ class MessagePart extends Root {
       this._content.downloadUrl = part.content.download_url;
       this._content.expiration = new Date(part.content.expiration);
     }
+  }
+
+  static isTextualMimeType(mimeType) {
+    return (this.TextualMimeTypes.indexOf(mimeType) !== -1);
   }
 
   /**
@@ -540,6 +562,8 @@ MessagePart.prototype.encoding = '';
  * @type {number}
  */
 MessagePart.prototype.size = 0;
+
+MessagePart.TextualMimeTypes = ['text/plain', 'application/json', 'text/markdown'];
 
 MessagePart._supportedEvents = [
   'parts:send',
