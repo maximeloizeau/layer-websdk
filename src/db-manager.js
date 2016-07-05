@@ -20,7 +20,6 @@ const SyncEvent = require('./sync-event');
 const Constants = require('./const');
 const SYNC_NEW = Constants.SYNC_STATE.NEW;
 const Util = require('./client-utils');
-const HasBlob = typeof Blob !== 'undefined';
 
 function getDate(inDate) {
   return inDate ? inDate.toISOString() : null;
@@ -110,9 +109,7 @@ class DbManager extends Root {
    */
   _open() {
     // Abort if all tables are disabled
-    const enabledTables = TABLES.filter((tableDef) => {
-      return this['_permission_' + tableDef.name];
-    });
+    const enabledTables = TABLES.filter(tableDef => this['_permission_' + tableDef.name]);
     if (enabledTables.length === 0) {
       this._isOpenError = true;
       this.trigger('error', { error: 'Persistence is disabled by application' });
@@ -120,7 +117,8 @@ class DbManager extends Root {
     }
 
     // Open the database
-    const request = window.indexedDB.open('LayerWebSDK_' + this.client.appId + '_' + this.client.user.userId, DB_VERSION);
+    const client = this.client;
+    const request = window.indexedDB.open('LayerWebSDK_' + client.appId + '_' + client.user.userId, DB_VERSION);
 
     request.onerror = (evt) => {
       this._isOpenError = true;
@@ -346,7 +344,7 @@ class DbManager extends Root {
       id: message.id,
       url: message.url,
       parts: message.parts.map(part => {
-        const body = HasBlob && part.body instanceof Blob && part.body.size > DbManager.MaxPartSize ? null : part.body;
+        const body = Util.isBlob(part.body) && part.body.size > DbManager.MaxPartSize ? null : part.body;
         return {
           body,
           id: part.id,
