@@ -64,7 +64,7 @@ const Content = require('./content');
 const xhr = require('./xhr');
 const ClientRegistry = require('./client-registry');
 const LayerError = require('./layer-error');
-const HasBlob = typeof Blob !== 'undefined';
+const { isBlob } = require('./client-utils');
 const logger = require('./logger');
 
 /* istanbul ignore next */
@@ -94,7 +94,7 @@ class MessagePart extends Root {
       } else {
         newOptions.mimeType = 'text/plain';
       }
-    } else if (HasBlob && (options instanceof Blob || options.body instanceof Blob)) {
+    } else if (isBlob(options) || isBlob(options.body)) {
       const bodyBlob = options instanceof Blob ? options : options.body;
       newOptions = {
         mimeType: bodyBlob.type,
@@ -105,7 +105,7 @@ class MessagePart extends Root {
     }
     super(newOptions);
     if (!this.size && this.body) this.size = this.body.length;
-    if (HasBlob && this.body instanceof Blob && !MessagePart.isTextualMimeType(this.mimeType)) {
+    if (isBlob(this.body) && !MessagePart.isTextualMimeType(this.mimeType)) {
       this.url = URL.createObjectURL(this.body);
     }
   }
@@ -409,10 +409,6 @@ class MessagePart extends Root {
         },
       });
     }
-  }
-
-  isBlob() {
-    return typeof Blob !== 'undefined' && this.body instanceof Blob;
   }
 
   /**
