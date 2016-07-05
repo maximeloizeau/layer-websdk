@@ -545,6 +545,19 @@ MessagePart.prototype.encoding = '';
  */
 MessagePart.prototype.size = 0;
 
+/**
+ * Array of mime types that should be treated as text.
+ *
+ * Treating a MessagePart as text means that even if the `body` gets a File or Blob,
+ * it will be transformed to a string before being delivered to your app.
+ *
+ * This value can be customized using:
+ *
+ *    layer.MessagePart.TextualMimeTypes = ['text/plain', 'text/mountain', 'text/ocean']
+ *
+ * @static
+ * @type {String[]}
+ */
 MessagePart.TextualMimeTypes = ['text/plain', 'application/json', 'text/markdown'];
 
 MessagePart._supportedEvents = [

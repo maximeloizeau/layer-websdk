@@ -1086,7 +1086,12 @@ DbManager.prototype._permission_syncQueue = false;
 DbManager.prototype.db = null;
 
 /**
- * Rich Content may be written to indexeddb and persisted... if its size is less than MaxPartSize
+ * Rich Content may be written to indexeddb and persisted... if its size is less than this number of bytes.
+ *
+ * This value can be customized; this example only writes Rich Content that is less than 5000 bytes
+ *
+ *    layer.DbManager.MaxPartSize = 5000;
+ *
  * @static
  * @type {Number}
  */
