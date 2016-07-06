@@ -186,6 +186,7 @@ class MessagePart extends Root {
     return this;
   }
 
+
   /**
    * Callback with result or error from calling fetchContent.
    *
