@@ -189,6 +189,15 @@ class Client extends ClientAuth {
     this._inCleanup = false;
   }
 
+  __adjustAppId() {
+    super.__adjustAppId();
+    ClientRegistry.unregister(this);
+  }
+
+  __updateAppId(newValue, oldValue) {
+    ClientRegistry.register(this);
+  }
+
   /**
    * Retrieve a conversation by Identifier.
    *
