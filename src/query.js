@@ -588,6 +588,9 @@ class Query extends Root {
     if (results.success) {
       this._appendResults(results, false);
       this.totalSize = Number(results.xhr.getResponseHeader('Layer-Count'));
+      if (results.xhr.getResponseHeader('Layer-Conversation-Is-Syncing') === 'true' && this.data.length < this.paginationWindow) {
+        this._run();
+      }
     } else {
       this.trigger('error', { error: results.data });
     }
@@ -614,7 +617,9 @@ class Query extends Root {
     const resultLength = results.data.length;
     if (resultLength) {
       if (fromDb) this._nextDBFromId = results.data[resultLength - 1].id;
-      else this._nextServerFromId = results.data[resultLength - 1].id;
+      else if (results.xhr.getResponseHeader('Layer-Conversation-Is-Syncing') !== 'true') {
+        this._nextServerFromId = results.data[resultLength - 1].id;
+      }
     }
 
     // Update this.data
