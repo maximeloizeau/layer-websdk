@@ -1298,7 +1298,7 @@ describe("The Message class", function() {
             expect(isDone).toBe(true);
         });
 
-        it("Should call the _fetchTextFromFile on each Textual Blob", function(done) {
+        it("Should call the _fetchTextFromBlob on each Textual Blob", function(done) {
             m = conversation.createMessage({
                 parts: [
                     {
@@ -1320,16 +1320,16 @@ describe("The Message class", function() {
                 ]
             });
 
-            spyOn(m.parts[0], "_fetchTextFromFile").and.callThrough();
-            spyOn(m.parts[1], "_fetchTextFromFile").and.callThrough();
-            spyOn(m.parts[2], "_fetchTextFromFile").and.callThrough();
-            spyOn(m.parts[3], "_fetchTextFromFile").and.callThrough();
+            spyOn(m.parts[0], "_fetchTextFromBlob").and.callThrough();
+            spyOn(m.parts[1], "_fetchTextFromBlob").and.callThrough();
+            spyOn(m.parts[2], "_fetchTextFromBlob").and.callThrough();
+            spyOn(m.parts[3], "_fetchTextFromBlob").and.callThrough();
 
             m._readAllBlobs(function() {
-                expect(m.parts[0]._fetchTextFromFile).toHaveBeenCalled();
-                expect(m.parts[1]._fetchTextFromFile).toHaveBeenCalled();
-                expect(m.parts[2]._fetchTextFromFile).not.toHaveBeenCalled();
-                expect(m.parts[3]._fetchTextFromFile).not.toHaveBeenCalled();
+                expect(m.parts[0]._fetchTextFromBlob).toHaveBeenCalled();
+                expect(m.parts[1]._fetchTextFromBlob).toHaveBeenCalled();
+                expect(m.parts[2]._fetchTextFromBlob).not.toHaveBeenCalled();
+                expect(m.parts[3]._fetchTextFromBlob).not.toHaveBeenCalled();
                 done();
             });
         });

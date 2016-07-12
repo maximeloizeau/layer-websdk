@@ -589,7 +589,7 @@ class Query extends Root {
       this._appendResults(results, false);
       this.totalSize = Number(results.xhr.getResponseHeader('Layer-Count'));
       if (results.xhr.getResponseHeader('Layer-Conversation-Is-Syncing') === 'true' && this.data.length < this.paginationWindow) {
-        this._run();
+        setTimeout(() => this._run(), 1500);
       }
     } else {
       this.trigger('error', { error: results.data });

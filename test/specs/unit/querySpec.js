@@ -1016,7 +1016,10 @@ describe("The Query Class", function() {
                 success: true,
                 data: [{id: "a"}],
                 xhr: {
-                    getResponseHeader: function() {return 6;},
+                    getResponseHeader: function(name) {
+                        if (name == 'Layout-Count') return 6;
+                        if (name == 'Layer-Conversation-Is-Syncing') return 'false';
+                    }
                 }
             }, requestUrl);
             expect(query._appendResults).toHaveBeenCalledWith({
@@ -1026,7 +1029,7 @@ describe("The Query Class", function() {
             }, false);
         });
 
-        it("Should not call _run if reached the end of the server's results", function() {
+        it("Should not call _run if results are up to date", function() {
             spyOn(query, "_run");
             spyOn(query, "_appendResults");
             query.paginationWindow = 100;
@@ -1035,10 +1038,32 @@ describe("The Query Class", function() {
                 success: true,
                 data: [{id: "a"}],
                 xhr: {
-                    getResponseHeader: function() {return 6;},
+                    getResponseHeader: function(name) {
+                        if (name == 'Layout-Count') return 6;
+                        if (name == 'Layer-Conversation-Is-Syncing') return 'false';
+                    }
                 }
             }, requestUrl);
             expect(query._run).not.toHaveBeenCalled();
+            query.data = [];
+        });
+
+        it("Should call _run if results are not up to date", function() {
+            spyOn(query, "_run");
+            spyOn(query, "_appendResults");
+            query.paginationWindow = 100;
+            query.data = [message, message, message, message, message, message, message];
+            query._processRunResults({
+                success: true,
+                data: [{id: "a"}],
+                xhr: {
+                    getResponseHeader: function(name) {
+                        if (name == 'Layout-Count') return 6;
+                        if (name == 'Layer-Conversation-Is-Syncing') return 'true';
+                    }
+                }
+            }, requestUrl);
+            expect(query._run).toHaveBeenCalled();
             query.data = [];
         });
 
@@ -1109,18 +1134,42 @@ describe("The Query Class", function() {
         it("Should register new results", function() {
             spyOn(client, "_createObject");
             spyOn(client, "_getObject").and.returnValue(conversation);
-            query._appendResults({data: [JSON.parse(JSON.stringify(responses.conversation2))]});
+            query._appendResults({
+                data: [JSON.parse(JSON.stringify(responses.conversation2))],
+                xhr: {
+                    getResponseHeader: function(name) {
+                        if (name == 'Layout-Count') return 6;
+                        if (name == 'Layer-Conversation-Is-Syncing') return 'false';
+                    }
+                }
+            });
             expect(client._createObject).toHaveBeenCalledWith(responses.conversation2);
         });
 
         it("Should update _nextDBFromId if there is data from DB", function() {
-            query._appendResults({data: [JSON.parse(JSON.stringify(responses.conversation2))]}, true);
+            query._appendResults({
+                data: [JSON.parse(JSON.stringify(responses.conversation2))],
+                xhr: {
+                    getResponseHeader: function(name) {
+                        if (name == 'Layout-Count') return 6;
+                        if (name == 'Layer-Conversation-Is-Syncing') return 'false';
+                    }
+                }
+            }, true);
             expect(query._nextDBFromId).toEqual(responses.conversation2.id);
             expect(query._nextServerFromId).toEqual('');
         });
 
         it("Should update _nextServerFromId if there is data from Server", function() {
-            query._appendResults({data: [JSON.parse(JSON.stringify(responses.conversation2))]}, false);
+            query._appendResults({
+                data: [JSON.parse(JSON.stringify(responses.conversation2))],
+                xhr: {
+                    getResponseHeader: function(name) {
+                        if (name == 'Layout-Count') return 6;
+                        if (name == 'Layer-Conversation-Is-Syncing') return 'false';
+                    }
+                }
+            }, false);
             expect(query._nextServerFromId).toEqual(responses.conversation2.id);
             expect(query._nextDBFromId).toEqual('');
         });
@@ -1138,7 +1187,15 @@ describe("The Query Class", function() {
             conversation.createdAt.setHours(conversation.createdAt.getHours() + 1);
 
             // Run
-            query._appendResults({data: [JSON.parse(JSON.stringify(responses.conversation2))]});
+            query._appendResults({
+                data: [JSON.parse(JSON.stringify(responses.conversation2))],
+                xhr: {
+                    getResponseHeader: function(name) {
+                        if (name == 'Layout-Count') return 6;
+                        if (name == 'Layer-Conversation-Is-Syncing') return 'false';
+                    }
+                }
+            });
 
             // Posttest
             expect(query.data).not.toBe(oldData);
@@ -1157,7 +1214,15 @@ describe("The Query Class", function() {
             var oldData = query.data = [conversation];
 
             // Run
-            query._appendResults({data: [JSON.parse(JSON.stringify(responses.conversation2))]});
+            query._appendResults({
+                data: [JSON.parse(JSON.stringify(responses.conversation2))],
+                xhr: {
+                    getResponseHeader: function(name) {
+                        if (name == 'Layout-Count') return 6;
+                        if (name == 'Layer-Conversation-Is-Syncing') return 'false';
+                    }
+                }
+            });
 
             // Posttest
             expect(query.data).toBe(oldData);
@@ -1166,7 +1231,15 @@ describe("The Query Class", function() {
 
         it("Should put objects rather than instances if dataType is object", function() {
             query.dataType = "object";
-            query._appendResults({data: [JSON.parse(JSON.stringify(responses.conversation2))]});
+            query._appendResults({
+                data: [JSON.parse(JSON.stringify(responses.conversation2))],
+                xhr: {
+                    getResponseHeader: function(name) {
+                        if (name == 'Layout-Count') return 6;
+                        if (name == 'Layer-Conversation-Is-Syncing') return 'false';
+                    }
+                }
+            });
             expect(query.data[0] instanceof layer.Conversation).toBe(false);
         });
 
@@ -1186,7 +1259,15 @@ describe("The Query Class", function() {
           }).and.returnValue(1);
 
           // Run
-          query._appendResults({data: [c3]});
+          query._appendResults({
+              data: [c3],
+              xhr: {
+                getResponseHeader: function(name) {
+                    if (name == 'Layout-Count') return 6;
+                    if (name == 'Layer-Conversation-Is-Syncing') return 'false';
+                }
+            }
+          });
 
           // Posttest
           expect(query._getInsertConversationIndex).toHaveBeenCalled();
@@ -1210,7 +1291,15 @@ describe("The Query Class", function() {
           }).and.returnValue(1);
 
           // Run
-          query._appendResults({data: [m3]});
+          query._appendResults({
+              data: [m3],
+              xhr: {
+                    getResponseHeader: function(name) {
+                        if (name == 'Layout-Count') return 6;
+                        if (name == 'Layer-Conversation-Is-Syncing') return 'false';
+                    }
+                }
+          });
 
           // Posttest
           expect(query._getInsertMessageIndex).toHaveBeenCalled();
@@ -1239,7 +1328,15 @@ describe("The Query Class", function() {
           query.model = layer.Query.Identity;
 
           // Run
-          query._appendResults({data: [i3]});
+          query._appendResults({
+              data: [i3],
+              xhr: {
+                    getResponseHeader: function(name) {
+                        if (name == 'Layout-Count') return 6;
+                        if (name == 'Layer-Conversation-Is-Syncing') return 'false';
+                    }
+                }
+          });
 
           // Posttest
           expect(query.data).toEqual([i1.toObject(), i2.toObject(), i3.toObject()]);

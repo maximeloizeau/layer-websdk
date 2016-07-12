@@ -8,6 +8,9 @@ const LayerParser = require('layer-patch');
 const uuid = require('uuid');
 const atob = typeof window === 'undefined' ? require('atob') : window.atob;
 
+/* istanbul ignore next */
+const LocalFileReader = typeof window === 'undefined' ? require('filereader') : FileReader;
+
 /**
  * Generate a random UUID
  *
@@ -171,6 +174,14 @@ exports.getExponentialBackoffSeconds = function getExponentialBackoffSeconds(max
   return secondsWaitTime + secondsOffset;
 };
 
+/**
+ * Is the value a Blob?
+ *
+ * Special case: Blob is not a defined object on this platform (ahem, node....)
+ * @method isBlob
+ * @param {Mixed} value
+ * @returns {Boolean}
+ */
 exports.isBlob = (value) => {
   return typeof Blob !== 'undefined' && value instanceof Blob;
 };
