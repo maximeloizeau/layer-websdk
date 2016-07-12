@@ -8,9 +8,6 @@ const LayerParser = require('layer-patch');
 const uuid = require('uuid');
 const atob = typeof window === 'undefined' ? require('atob') : window.atob;
 
-/* istanbul ignore next */
-const LocalFileReader = typeof window === 'undefined' ? require('filereader') : FileReader;
-
 /**
  * Generate a random UUID
  *
@@ -39,7 +36,7 @@ exports.generateUUID = uuid.v4;
  * @return {string}
  */
 exports.typeFromID = (id) => {
-  const matches = id.match(/layer\:\/\/\/(.*?)\//);
+  const matches = id.match(/layer:\/\/\/(.*?)\//);
   return matches ? matches[1] : '';
 };
 
