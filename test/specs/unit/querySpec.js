@@ -1029,7 +1029,7 @@ describe("The Query Class", function() {
             }, false);
         });
 
-        it("Should not call _run if results are up to date", function() {
+        it("Should not schedule _run if results are up to date", function() {
             spyOn(query, "_run");
             spyOn(query, "_appendResults");
             query.paginationWindow = 100;
@@ -1044,11 +1044,12 @@ describe("The Query Class", function() {
                     }
                 }
             }, requestUrl);
+            jasmine.clock().tick(10000);
             expect(query._run).not.toHaveBeenCalled();
             query.data = [];
         });
 
-        it("Should call _run if results are not up to date", function() {
+        it("Should schedule _run if results are not up to date", function() {
             spyOn(query, "_run");
             spyOn(query, "_appendResults");
             query.paginationWindow = 100;
@@ -1063,6 +1064,7 @@ describe("The Query Class", function() {
                     }
                 }
             }, requestUrl);
+            jasmine.clock().tick(10000);
             expect(query._run).toHaveBeenCalled();
             query.data = [];
         });
