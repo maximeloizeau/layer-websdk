@@ -27,6 +27,8 @@ const xhr = require('./xhr');
 const logger = require('./logger');
 const Utils = require('./client-utils');
 
+const MAX_XHR_CONNECTIONS = 5;
+
 class SyncManager extends Root {
   /**
    * Creates a new SyncManager.
@@ -178,27 +180,61 @@ class SyncManager extends Root {
         if (!isValid) {
           this._removeRequest(requestEvt);
           return this._processNextRequest();
-        }
-        if (requestEvt instanceof WebsocketSyncEvent) {
-          if (this.socketManager && this.socketManager._isOpen()) {
-            logger.debug(`Sync Manager Websocket Request Firing ${requestEvt.operation} on target ${requestEvt.target}`,
-              requestEvt.toObject());
-            this.requestManager.sendRequest(requestEvt._getRequestData(this.client),
-                result => this._xhrResult(result, requestEvt));
-            requestEvt.isFiring = true;
-          } else {
-            logger.debug('Sync Manager Websocket Request skipped; socket closed');
-          }
         } else {
-          logger.debug(`Sync Manager XHR Request Firing ${requestEvt.operation} ${requestEvt.target}`,
-            requestEvt.toObject());
-          xhr(requestEvt._getRequestData(this.client), result => this._xhrResult(result, requestEvt));
-          requestEvt.isFiring = true;
+          this._fireRequest(requestEvt);
         }
       });
-    } else if (requestEvt && requestEvt.isFiring) {
-      logger.debug(`Sync Manager processNext skipped; request still firing ${requestEvt.operation} ` +
-        `on target ${requestEvt.target}`, requestEvt.toObject());
+    }
+  }
+
+  /**
+   * Directly fire this sync request.
+   *
+   * This is intended to be called only after careful analysis of our state to make sure its safe to send the request.
+   * See `_processNextRequest()`
+   *
+   * @method _fireRequest
+   * @private
+   * @param {layer.SyncEvent} requestEvt
+   */
+  _fireRequest(requestEvt) {
+    if (requestEvt instanceof WebsocketSyncEvent) {
+      this._fireRequestWebsocket(requestEvt);
+    } else {
+      this._fireRequestXHR(requestEvt);
+    }
+  }
+
+  /**
+   * Directly fire this XHR Sync request.
+   *
+   * @method _fireRequestXHR
+   * @private
+   * @param {layer.XHRSyncEvent} requestEvt
+   */
+  _fireRequestXHR(requestEvt) {
+    requestEvt.isFiring = true;
+    logger.debug(`Sync Manager XHR Request Firing ${requestEvt.operation} ${requestEvt.target}`,
+      requestEvt.toObject());
+    xhr(requestEvt._getRequestData(this.client), result => this._xhrResult(result, requestEvt));
+  }
+
+  /**
+   * Directly fire this Websocket Sync request.
+   *
+   * @method _fireRequestWebsocket
+   * @private
+   * @param {layer.WebsocketSyncEvent} requestEvt
+   */
+  _fireRequestWebsocket(requestEvt) {
+    if (this.socketManager && this.socketManager._isOpen()) {
+      logger.debug(`Sync Manager Websocket Request Firing ${requestEvt.operation} on target ${requestEvt.target}`,
+        requestEvt.toObject());
+      requestEvt.isFiring = true;
+      this.requestManager.sendRequest(requestEvt._getRequestData(this.client),
+          result => this._xhrResult(result, requestEvt));
+    } else {
+      logger.debug('Sync Manager Websocket Request skipped; socket closed');
     }
   }
 
