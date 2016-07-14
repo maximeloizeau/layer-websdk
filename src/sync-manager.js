@@ -27,7 +27,7 @@ const xhr = require('./xhr');
 const logger = require('./logger');
 const Utils = require('./client-utils');
 
-const MAX_XHR_CONNECTIONS = 5;
+const MAX_RECEIPT_CONNECTIONS = 4;
 
 class SyncManager extends Root {
   /**
@@ -68,6 +68,7 @@ class SyncManager extends Root {
       }, this);
     }
     this.queue = [];
+    this.receiptQueue = [];
 
     this.onlineManager.on('disconnected', this._onlineStateChange, this);
     this.socketManager.on('connected disconnected', this._onlineStateChange, this);
@@ -121,7 +122,11 @@ class SyncManager extends Root {
     // do not add it to the queue.
     if (requestEvt.operation !== 'PATCH' || !this._findUnfiredCreate(requestEvt)) {
       logger.info(`Sync Manager Request ${requestEvt.operation} on target ${requestEvt.target}`, requestEvt.toObject());
-      this.queue.push(requestEvt);
+      if (requestEvt.operation === 'RECEIPT') {
+        this.receiptQueue.push(requestEvt);
+      } else {
+        this.queue.push(requestEvt);
+      }
       this.trigger('sync:add', {
         request: requestEvt,
         target: requestEvt.target,
@@ -138,7 +143,7 @@ class SyncManager extends Root {
     // Fire the request if there aren't any existing requests already being processed.
     // If this isn't the first item, assume that all necessary logic exists to fire the
     // existing requests and then it will move onto this request.
-    if (this.queue.length === 1 || !this.queue[0].isFiring) {
+    if (this.queue.length === 1 || this.queue.length && !this.queue[0].isFiring || this.receiptQueue.length) {
       this._processNextRequest();
     }
   }
@@ -185,6 +190,27 @@ class SyncManager extends Root {
         }
       });
     }
+
+    let firingReceipts = 0;
+    this.receiptQueue.forEach((receiptEvt) => {
+      if (this.isOnline() && receiptEvt) {
+        if (receiptEvt.isFiring || receiptEvt._isValidating) {
+          firingReceipts++;
+        } else if (firingReceipts < MAX_RECEIPT_CONNECTIONS) {
+          firingReceipts++;
+          receiptEvt._isValidating = true;
+          this._validateRequest(receiptEvt, (isValid) => {
+            receiptEvt._isValidating = false;
+            if (!isValid) {
+              const index = this.receiptQueue.indexOf(receiptEvt);
+              if (index !== -1) this.receiptQueue.splice(index, 1);
+            } else {
+              this._fireRequest(receiptEvt);
+            }
+          });
+        }
+      }
+    });
   }
 
   /**
@@ -670,6 +696,14 @@ SyncManager.prototype.onlineManager = null;
  * @type {layer.SyncEvent[]}
  */
 SyncManager.prototype.queue = null;
+
+/**
+ * The array of layer.SyncEvent instances awaiting to be fired.
+ *
+ * Receipts can generally just be fired off all at once without much fretting about ordering or dependencies.
+ * @type {layer.SyncEvent[]}
+ */
+SyncManager.prototype.receiptQueue = null;
 
 /**
  * Reference to the Client so that we can pass it to SyncEvents  which may need to lookup their targets
