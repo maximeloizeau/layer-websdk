@@ -786,6 +786,20 @@ describe("The Conversation Class", function() {
             expect(conversation.lastMessage.parts[0].body).toEqual(c.last_message.parts[0].body);
         });
 
+        it("Should setup lastMessage from a message-id", function() {
+            // Setup
+            conversation.participants = [userIdentity1, userIdentity2];
+            var m1 = conversation.createMessage("hey").send();
+            var m2 = conversation.createMessage("ho").send();
+            c.last_message = m1.id;
+
+            // Run
+            conversation._populateFromServer(c);
+
+            // Posttest
+            expect(conversation.lastMessage).toBe(m1);
+        });
+
         it("Should call client._addConversation", function() {
             // Setup
             spyOn(client, "_addConversation");

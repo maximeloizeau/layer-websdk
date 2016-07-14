@@ -380,7 +380,11 @@ class Conversation extends Syncable {
     client._addConversation(this);
 
     if (conversation.last_message) {
-      this.lastMessage = client._createObject(conversation.last_message);
+      if (typeof conversation.last_message === 'string') {
+        this.lastMessage = client.getMessage(conversation.last_message);
+      } else {
+        this.lastMessage = client._createObject(conversation.last_message);
+      }
     } else {
       this.lastMessage = null;
     }
