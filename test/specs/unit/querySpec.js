@@ -892,7 +892,7 @@ describe("The Query Class", function() {
             expect(query.data).toEqual([conversation.lastMessage]);
             expect(query._triggerChange).toHaveBeenCalledWith({
               type: 'data',
-              data: conversation.lastMessage,
+              data: [conversation.lastMessage],
               query: query,
               target: client,
             });

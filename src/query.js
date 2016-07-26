@@ -502,7 +502,7 @@ class Query extends Root {
           // Trigger the change event
           this._triggerChange({
             type: 'data',
-            data: this._getData(conversation.lastMessage),
+            data: [this._getData(conversation.lastMessage)],
             query: this,
             target: this.client,
           });
@@ -1270,6 +1270,10 @@ class Query extends Root {
   _triggerChange(evt) {
     this.trigger('change', evt);
     this.trigger('change:' + evt.type, evt);
+  }
+
+  toString() {
+    return this.id;
   }
 }
 
