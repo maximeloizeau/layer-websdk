@@ -467,21 +467,29 @@ class DbManager extends Root {
       const store = transaction.objectStore(tableName);
       transaction.oncomplete = transaction.onerror = transactionComplete;
 
-      data.forEach(item => {
-        const req = isUpdate ? store.put(item) : store.add(item);
+      // If the request fails, and we were doing an insert, try an update instead.
+      // This will create one transaction per error.
+      // TODO: Investigate capturing all errors and then using a single transaction to update all failed items.
+      const onError = function onError(item) {
+        if (!isUpdate) {
+          transactionCount++;
+          const transaction2 = this.db.transaction([tableName], 'readwrite');
+          const store2 = transaction2.objectStore(tableName);
+          transaction2.oncomplete = transaction2.onerror = transactionComplete;
+          store2.put(item);
+        }
+      }.bind(this);
 
-        // If the request fails, and we were doing an insert, try an update instead.
-        // This will create one transaction per error.
-        // TODO: Investigate capturing all errors and then using a single transaction to update all failed items.
-        req.onerror = () => {
-          if (!isUpdate) {
-            transactionCount++;
-            const transaction2 = this.db.transaction([tableName], 'readwrite');
-            const store2 = transaction2.objectStore(tableName);
-            transaction2.oncomplete = transaction2.onerror = transactionComplete;
-            store2.put(item);
-          }
-        };
+      data.forEach(item => {
+        try {
+          const req = isUpdate ? store.put(item) : store.add(item);
+          req.onerror = () => {
+            onError(item);
+          };
+        } catch (e) {
+          // Safari throws an error rather than use the onerror event.
+          onError(item);
+        }
       });
     });
   }
