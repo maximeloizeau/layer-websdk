@@ -1052,16 +1052,19 @@ ClientAuthenticator.prototype.sessionToken = '';
 
 /**
  * URL to Layer's Web API server.
+ *
+ * Only muck with this if told to by Layer Staff.
  * @type {String}
  */
 ClientAuthenticator.prototype.url = 'https://api.layer.com';
 
 /**
  * URL to Layer's Websocket server.
+ *
+ * Only muck with this if told to by Layer Staff.
  * @type {String}
- * @protected
  */
-ClientAuthenticator.prototype._websocketUrl = 'wss://websockets.layer.com';
+ClientAuthenticator.prototype.websocketUrl = 'wss://websockets.layer.com';
 
 /**
  * Web Socket Manager

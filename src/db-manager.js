@@ -328,10 +328,11 @@ class DbManager extends Root {
    * @method _getMessageData
    * @private
    * @param {layer.Message[]} messages
+   * @param {Function} callback
    * @return {Object[]} messages
    */
-  _getMessageData(messages) {
-    return messages.filter(message => {
+  _getMessageData(messages, callback) {
+    const dbMessages = messages.filter(message => {
       if (message._fromDB) {
         message._fromDB = false;
         return false;
@@ -368,6 +369,24 @@ class DbManager extends Root {
       sync_state: message.syncState,
       is_unread: message.isUnread,
     }));
+
+    // Find all blobs and convert them to base64... because Safari 9.1 doesn't support writing blobs those Frelling Smurfs.
+    let count = 0;
+    const parts = [];
+    dbMessages.forEach((message) => {
+      message.parts.forEach((part) => {
+        if (Util.isBlob(part.body)) parts.push(part);
+      });
+    });
+    parts.forEach((part) => {
+      Util.blobToBase64(part.body, (base64) => {
+        part.body = base64;
+        part.useBlob = true;
+        count++;
+        if (count === parts.length) callback(dbMessages);
+      });
+    });
+    if (parts.length === 0) callback(dbMessages);
   }
 
   /**
@@ -383,8 +402,10 @@ class DbManager extends Root {
    * @param {Function} [callback]
    */
   writeMessages(messages, isUpdate, callback) {
-    this._writeObjects('messages', this._getMessageData(messages.filter(message => !message.isDestroyed)),
-      isUpdate, callback);
+    this._getMessageData(
+      messages.filter(message => !message.isDestroyed),
+      dbMessageData => this._writeObjects('messages', dbMessageData, isUpdate, callback)
+    );
   }
 
   /**
@@ -622,6 +643,14 @@ class DbManager extends Root {
    * @param {layer.Message} callback.result - Message instances created from the database
    */
   _loadMessagesResult(messages, callback) {
+    // Convert base64 to blob before sending it along...
+    messages.forEach(message => message.parts.forEach((part) => {
+      if (part.useBlob) {
+        part.body = Util.base64ToBlob(part.body);
+        delete part.useBlob;
+      }
+    }));
+
     // Instantiate and Register each Message
     const newData = messages
       .map(message => this._createMessage(message) || this.client.getMessage(message.id))
@@ -1002,6 +1031,17 @@ class DbManager extends Root {
 
           switch (tableName) {
             case 'messages':
+              cursor.value.conversation = {
+                id: cursor.value.conversation,
+              };
+              // Convert base64 to blob before sending it along...
+              cursor.value.parts.forEach((part) => {
+                if (part.useBlob) {
+                  part.body = Util.base64ToBlob(part.body);
+                  delete part.useBlob;
+                }
+              });
+              return callback(cursor.value);
             case 'identities':
               return callback(cursor.value);
             case 'conversations':

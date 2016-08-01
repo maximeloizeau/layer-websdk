@@ -215,31 +215,6 @@ describe("The MessageParts class", function() {
         });
     });
 
-    describe("The _fetchTextFromFile() method", function() {
-        var part, message, blob, text;
-        beforeEach(function() {
-            text = new Array(layer.DbManager.MaxPartSize + 10).join('a');
-            blob = new Blob([text], {type : 'text/plain'});
-            part = new layer.MessagePart(blob);
-            message = conversation.createMessage({parts: [part]});
-        });
-
-        it("Should return file if file is really a string", function() {
-            var result;
-            part._fetchTextFromFile(text, function(data) { result = data;});
-            expect(result).toEqual(text);
-        });
-
-        it("Should turn text blob to string", function(done) {
-            var result;
-            part._fetchTextFromFile(text, function(data) {
-                expect(data).toEqual(text);
-                done();
-            });
-        });
-
-    });
-
     describe("The _fetchContentCallback() method", function() {
         var part, message, content;
         beforeEach(function() {
@@ -273,14 +248,18 @@ describe("The MessageParts class", function() {
           var text = new Array(layer.DbManager.MaxPartSize + 10).join('a');
           var blob = new Blob([text], {type : 'text/plain'});
           part = new layer.MessagePart(blob);
-          spyOn(part, "_fetchTextFromFile").and.callFake(function(file, callback) {callback(text);});;
+          var fetchTextFromFile = layer.Util.fetchTextFromFile;
+          spyOn(layer.Util, "fetchTextFromFile").and.callFake(function(file, callback) {callback(text);});
           spyOn(part, "_fetchContentComplete");
           var spy = jasmine.createSpy('callback');
           part._fetchContentCallback(null, blob, spy);
 
           // Posttest
-          expect(part._fetchTextFromFile).toHaveBeenCalledWith(blob, jasmine.any(Function));
+          expect(layer.Util.fetchTextFromFile).toHaveBeenCalledWith(blob, jasmine.any(Function));
           expect(part._fetchContentComplete).toHaveBeenCalledWith(text, spy);
+
+          // Cleanup
+          layer.Util.fetchTextFromFile = fetchTextFromFile;
         });
 
         it("Should call read_fetchContentComplete for text/plain", function() {

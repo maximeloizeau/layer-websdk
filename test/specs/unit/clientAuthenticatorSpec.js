@@ -73,10 +73,10 @@ describe("The Client Authenticator Class", function() {
 
          it("Should allow customization of the websocketUrl", function() {
             expect( new layer.ClientAuthenticator({
-                appId: "",
+                appId: appId,
                 url: "https://duh.com",
-                _websocketUrl: "https://frodo-the-dodo.dodocom"
-            }))._websocketUrl).toEqual("https://frodo-the-dodo.dodocom");
+                websocketUrl: "https://frodo-the-dodo.dodocom"
+            }).websocketUrl).toEqual("https://frodo-the-dodo.dodocom");
         });
     });
 
