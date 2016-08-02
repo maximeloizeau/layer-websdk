@@ -1089,12 +1089,20 @@ class DbManager extends Root {
   deleteTables(callback) {
     this.onOpen(() => {
       try {
+        // Damned safari 9 throws errors on transactions across multiple tables.  So one at a time:
+        let count = 0;
         const tableNames = TABLES.map(tableDef => tableDef.name);
-        const transaction = this.db.transaction(tableNames, 'readwrite');
-        tableNames.forEach(tableName => transaction.objectStore(tableName).clear());
-        transaction.oncomplete = callback;
+        tableNames.forEach((name) => {
+          const transaction = this.db.transaction([name], 'readwrite');
+          transaction.objectStore(name).clear();
+          transaction.oncomplete = () => {
+            count++;
+            if (count === tableNames.length) callback();
+          };
+        });
       } catch (e) {
         logger.error('Failed to delete table', e);
+        callback(e);
       }
     });
   }
