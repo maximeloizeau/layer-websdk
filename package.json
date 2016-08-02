@@ -33,14 +33,8 @@
     "get-random-values": false
   },
   "devDependencies": {
-    "babel-eslint": "^6.1.2",
     "babel-preset-es2015": "^6.3.13",
     "babelify": "^7.2.0",
-    "eslint": "^3.2.2",
-    "eslint-config-airbnb": "^9.0.1",
-    "eslint-plugin-import": "^1.12.0",
-    "eslint-plugin-jsx-a11y": "^2.0.1",
-    "eslint-plugin-react": "^5.2.2",
     "grunt": "^0.4.5",
     "grunt-babel": "^6.0.0",
     "grunt-browserify": "^4.0.1",
