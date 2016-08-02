@@ -18,8 +18,9 @@ const Root = require('./root');
 const logger = require('./logger');
 const SyncEvent = require('./sync-event');
 const Constants = require('./const');
-const SYNC_NEW = Constants.SYNC_STATE.NEW;
 const Util = require('./client-utils');
+
+const SYNC_NEW = Constants.SYNC_STATE.NEW;
 
 function getDate(inDate) {
   return inDate ? inDate.toISOString() : null;
@@ -883,8 +884,8 @@ class DbManager extends Root {
         if (cursor) {
           data.push(cursor.value);
           cursor.continue();
-        } else {
-          if (!this.isDestroyed) callback(data);
+        } else if (!this.isDestroyed) {
+          callback(data);
         }
       };
     });
@@ -927,8 +928,8 @@ class DbManager extends Root {
               } else {
                 cursor.continue();
               }
-            } else {
-              if (!this.isDestroyed) callback(data);
+            } else if (!this.isDestroyed) {
+              callback(data);
             }
           };
     });

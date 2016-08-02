@@ -102,6 +102,9 @@ class MessagePart extends Root {
     }
     super(newOptions);
     if (!this.size && this.body) this.size = this.body.length;
+    if (options.encoding === 'base64') {
+      this.body = Util.base64ToBlob(this.body);
+    }
     if (Util.isBlob(this.body) && !MessagePart.isTextualMimeType(this.mimeType)) {
       this.url = URL.createObjectURL(this.body);
     }
