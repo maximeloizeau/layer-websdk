@@ -4,6 +4,8 @@
 
 * layer.Client.websocketUrl is now a public property
 * No longer writes Blobs to indexedDB as the Evil Safari Smurfs (v9.1.2) have decided not to support that.  Now writes base64.
+* Client.logout() now provides a callback notifying you when its safe to navigate away from the page.  Failure to use this may cause
+  data to not be deleted on logging out.  Especially problematic in Safari.
 
 ## 2.0.0 Beta 1
 
