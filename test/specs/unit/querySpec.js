@@ -488,6 +488,24 @@ describe("The Query Class", function() {
             expect(query.trigger).not.toHaveBeenCalled();
         });
 
+        it("Should not call _runConversation if the model is Conversation and pagedToEnd", function() {
+            spyOn(query, "_runConversation");
+            spyOn(query, "_runMessage");
+            spyOn(query, "_runAnnouncement");
+            spyOn(query, "_runIdentity");
+
+            spyOn(client, "_checkAndPurgeCache");
+            spyOn(query, "trigger");
+            query.data = [conversation];
+            query.pagedToEnd = true;
+
+            // Run
+            query._run();
+
+            // Posttest
+            expect(query._runConversation).not.toHaveBeenCalled();
+        });
+
         it("Should call _runMessage if the model is Message", function() {
             query.model = "Message";
             query.predicate = 'conversation.id = "fred"';
@@ -635,7 +653,7 @@ describe("The Query Class", function() {
             expect(query._processRunResults).toHaveBeenCalledWith(jasmine.objectContaining({
                 success: true,
                 data: [{id: "a"}, {id: "b"}]
-            }), "conversations?sort_by=created_at&page_size=36");
+            }), "conversations?sort_by=created_at&page_size=36", 36);
         });
     });
 
@@ -750,7 +768,7 @@ describe("The Query Class", function() {
             expect(query._processRunResults).toHaveBeenCalledWith(jasmine.objectContaining({
                 success: true,
                 data: [{id: "a"}, {id: "b"}]
-            }), "announcements?page_size=47");
+            }), "announcements?page_size=47", 47);
         });
     });
 
@@ -879,7 +897,7 @@ describe("The Query Class", function() {
             expect(query._processRunResults).toHaveBeenCalledWith(jasmine.objectContaining({
                 success: true,
                 data: [{id: "a"}, {id: "b"}]
-            }), "conversations/" + conversation.id.replace(/^layer\:\/\/\/conversations\//, "") + "/messages?page_size=47");
+            }), "conversations/" + conversation.id.replace(/^layer\:\/\/\/conversations\//, "") + "/messages?page_size=47", 47);
         });
 
         it("Should add lastMessage to the results", function() {
@@ -965,7 +983,7 @@ describe("The Query Class", function() {
             expect(query._processRunResults).toHaveBeenCalledWith(jasmine.objectContaining({
                 success: true,
                 data: [{id: "a"}, {id: "b"}]
-            }), "identities?page_size=47");
+            }), "identities?page_size=47", 47);
         });
     });
 
@@ -995,7 +1013,7 @@ describe("The Query Class", function() {
                 xhr: {
                     getResponseHeader: function() {return 6;},
                 }
-            }, requestUrl);
+            }, requestUrl, 10);
             expect(query.isFiring).toBe(false);
         });
 
@@ -1006,7 +1024,7 @@ describe("The Query Class", function() {
                 xhr: {
                     getResponseHeader: function() {return 6;},
                 }
-            }, requestUrl);
+            }, requestUrl, 10);
             expect(query.isFiring).toBe(false);
         });
 
@@ -1021,7 +1039,7 @@ describe("The Query Class", function() {
                         if (name == 'Layer-Conversation-Is-Syncing') return 'false';
                     }
                 }
-            }, requestUrl);
+            }, requestUrl, 10);
             expect(query._appendResults).toHaveBeenCalledWith({
                 success: true,
                 data: [{id: "a"}],
@@ -1043,7 +1061,7 @@ describe("The Query Class", function() {
                         if (name == 'Layer-Conversation-Is-Syncing') return 'false';
                     }
                 }
-            }, requestUrl);
+            }, requestUrl, 10);
             jasmine.clock().tick(10000);
             expect(query._run).not.toHaveBeenCalled();
             query.data = [];
@@ -1063,10 +1081,103 @@ describe("The Query Class", function() {
                         if (name == 'Layer-Conversation-Is-Syncing') return 'true';
                     }
                 }
-            }, requestUrl);
+            }, requestUrl, 10);
             jasmine.clock().tick(10000);
             expect(query._run).toHaveBeenCalled();
             query.data = [];
+        });
+
+        it("Should trigger server-syncing-state true if scheduling _run for the first time", function() {
+            spyOn(query, "_run");
+            spyOn(query, "trigger");
+            query.paginationWindow = 100;
+            query.data = [message, message, message, message, message, message, message];
+            query._processRunResults({
+                success: true,
+                data: [],
+                xhr: {
+                     getResponseHeader: function(name) {
+                         if (name == 'Layer-Count') return 0;
+                         if (name == 'Layer-Conversation-Is-Syncing') return 'true';
+                     }
+                }
+            }, requestUrl, 10);
+            expect(query.trigger).toHaveBeenCalledWith('server-syncing-state', { syncing: true });
+        });
+
+        it("Should NOT trigger server-syncing-state true if scheduling _run for subsequent calls", function() {
+            spyOn(query, "_run");
+            spyOn(query, "trigger");
+            query._isServerSyncing = true;
+            query.paginationWindow = 100;
+            query.data = [message, message, message, message, message, message, message];
+            query._processRunResults({
+                success: true,
+                data: [],
+                xhr: {
+                     getResponseHeader: function(name) {
+                         if (name == 'Layer-Count') return 0;
+                         if (name == 'Layer-Conversation-Is-Syncing') return 'true';
+                     }
+                }
+            }, requestUrl, 10);
+            expect(query.trigger).not.toHaveBeenCalledWith('server-syncing-state', jasmine.any(Object));
+        });
+
+        it("Should trigger server-syncing-state false if sufficient data", function() {
+            spyOn(query, "_run");
+            spyOn(query, "trigger");
+            query._isServerSyncing = true;
+            query.paginationWindow = 4;
+            query.data = [message, message, message, message, message, message, message];
+            query._processRunResults({
+                success: true,
+                data: [],
+                xhr: {
+                     getResponseHeader: function(name) {
+                         if (name == 'Layer-Count') return 0;
+                         if (name == 'Layer-Conversation-Is-Syncing') return 'true';
+                     }
+                }
+            }, requestUrl, 10);
+            expect(query.trigger).toHaveBeenCalledWith('server-syncing-state', { syncing: false });
+        });
+
+        it("Should trigger server-syncing-state false if server is done syncing", function() {
+            spyOn(query, "_run");
+            spyOn(query, "trigger");
+            query._isServerSyncing = true;
+            query.paginationWindow = 100;
+            query.data = [message, message, message, message, message, message, message];
+            query._processRunResults({
+                success: true,
+                data: [],
+                xhr: {
+                     getResponseHeader: function(name) {
+                         if (name == 'Layer-Count') return 0;
+                         if (name == 'Layer-Conversation-Is-Syncing') return 'false';
+                     }
+                }
+            }, requestUrl, 10);
+            expect(query.trigger).toHaveBeenCalledWith('server-syncing-state', { syncing: false });
+        });
+
+        it("Should not trigger server-syncing-state false if server is not syncing", function() {
+            spyOn(query, "_run");
+            spyOn(query, "trigger");
+            query.paginationWindow = 100;
+            query.data = [message, message, message, message, message, message, message];
+            query._processRunResults({
+                success: true,
+                data: [],
+                xhr: {
+                     getResponseHeader: function(name) {
+                         if (name == 'Layer-Count') return 0;
+                         if (name == 'Layer-Conversation-Is-Syncing') return 'false';
+                     }
+                }
+            }, requestUrl, 10);
+            expect(query.trigger).not.toHaveBeenCalledWith('server-syncing-state', { syncing: false });
         });
 
         it("Should not call _appendResults if request is not the most recent request", function() {
@@ -1076,7 +1187,7 @@ describe("The Query Class", function() {
                 success: true,
                 data: [{id: "a"}],
                 xhr: {}
-            }, 'joe');
+            }, 'joe', 10);
             expect(query._appendResults).not.toHaveBeenCalled();
         });
 
@@ -1087,7 +1198,7 @@ describe("The Query Class", function() {
                 success: true,
                 data: [{id: "a"}],
                 xhr: {}
-            }, 'joe');
+            }, 'joe', 10);
             expect(query._appendResults).not.toHaveBeenCalled();
 
             // Cleanup
@@ -1102,7 +1213,7 @@ describe("The Query Class", function() {
                 success: true,
                 data: [{id: "a"}],
                 xhr: {}
-            }, 'joe');
+            }, 'joe', 10);
             expect(query.isFiring).toBe(true);
             expect(query._firingRequest).toEqual('fred');
         });
@@ -1114,8 +1225,30 @@ describe("The Query Class", function() {
                 xhr: {
                     getResponseHeader: function() {return 6;},
                 }
-            }, requestUrl);
+            }, requestUrl, 10);
             expect(query.totalSize).toEqual(6);
+        });
+
+        it("Should not set pagedToEnd if the number of requested results is returned", function() {
+             query._processRunResults({
+                success: true,
+                data: [responses.message1, responses.message1, responses.message1, responses.message1],
+                xhr: {
+                    getResponseHeader: function() {return 6;},
+                }
+            }, requestUrl, 4);
+            expect(query.pagedToEnd).toBe(false);
+        });
+
+        it("Should set pagedToEnd if less than the number of requested results is returned", function() {
+             query._processRunResults({
+                success: true,
+                data: [responses.message1, responses.message1, responses.message1],
+                xhr: {
+                    getResponseHeader: function() {return 6;},
+                }
+            }, requestUrl, 4);
+            expect(query.pagedToEnd).toBe(true);
         });
     });
 

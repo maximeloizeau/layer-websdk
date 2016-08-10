@@ -56,6 +56,7 @@ class DbManager extends Root {
    *
    * Key configuration is the layer.DbManager.persistenceFeatures property.
    *
+   * @method constructor
    * @param {Object} options
    * @param {layer.Client} options.client
    * @param {Object} options.persistenceFeatures
